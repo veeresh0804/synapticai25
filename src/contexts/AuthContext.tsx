@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
+const BACKEND_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || 'http://localhost:8081';
+
 export type UserType = 'recruiter' | 'student' | 'admin' | null;
 
 export interface RecruiterProfile {
@@ -61,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     try {
-      const res = await fetch('http://localhost:8081/api/auth/me', {
+      const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
