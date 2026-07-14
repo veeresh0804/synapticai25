@@ -1,0 +1,17 @@
+# SudheeAI
+
+> AI-powered recruitment platform that replaces resume screening with evidence-based hiring using verified signals from GitHub, LeetCode, and LinkedIn.
+
+SudheeAI helps recruiters rank candidates by real, verified technical ability and helps students understand their job readiness. The platform aggregates multi-platform signals, runs explainable AI ranking, and offers tools for bias detection, interview scheduling, and talent discovery.
+
+## Pages
+
+- [Home](/): Overview of SudheeAI's evidence-based hiring approach.
+- [Recruiter Login](/recruiter/login): Sign in portal for recruiters.
+- [Recruiter Register](/recruiter/register): Create a recruiter account.
+- [Student Login](/student/login): Sign in portal for students.
+- [Student Register](/student/register): Create a student account.
+
+## Resources
+
+- [AI Interviewer Guide](/resources/ai-interviewer-guide): How AI-driven interviewing tools improve hiring efficiency and reduce bias.

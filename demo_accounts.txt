@@ -1,0 +1,30 @@
+==================================================
+           DEMO ACCOUNT LOGIN DETAILS
+==================================================
+
+Password for ALL accounts: Demo@1234
+
+--------------------------------------------------
+👨‍🎓 STUDENT ACCOUNTS (Mock Resumes & Applications)
+--------------------------------------------------
+1. nikhil.mishra20@jammu.iitb.ac.in
+2. garima.rajput21@goa.iitb.ac.in
+3. pavan.bose22@hyderabad.iitb.ac.in
+4. rishabh.choudhary23@bhilai.iitb.ac.in
+5. deepika.kapoor24@student.university.ac.in
+
+--------------------------------------------------
+👔 RECRUITER ACCOUNTS (Mock Jobs & Candidates)
+--------------------------------------------------
+1. myra.kapoor@tcs.com (Tata Consultancy Services)
+2. suresh.verma@infosys.com (Infosys)
+3. tara.jain@google.com (Google India)
+4. namita.kulkarni@microsoft.com (Microsoft India)
+5. dhruv.kulkarni@amazon.com (Amazon India)
+6. harsh.roy@flipkart.com (Flipkart)
+7. shubham.das@razorpay.com (Razorpay)
+
+--------------------------------------------------
+🛠️ ADMIN ACCOUNT
+--------------------------------------------------
+admin@hirehub.com
