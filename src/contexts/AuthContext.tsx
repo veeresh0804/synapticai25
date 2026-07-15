@@ -53,38 +53,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadSession = useCallback(async () => {
     setIsLoading(true);
-    const token = localStorage.getItem('sb_token');
-    if (!token) {
-      setUser(null);
-      setUserType(null);
-      setRecruiterProfile(null);
-      setStudentProfile(null);
-      setIsLoading(false);
-      return;
-    }
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser({ id: data.id, email: data.email } as any);
-        setUserType(data.role as UserType);
-        if (data.role === 'student') {
-          setStudentProfile(data.profile);
-          setRecruiterProfile(null);
-        } else if (data.role === 'recruiter') {
-          setRecruiterProfile(data.profile);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        const uid = session.user.id;
+
+        // 1. Check if recruiter profile exists
+        const { data: recProfile } = await supabase
+          .from('recruiters')
+          .select('*')
+          .eq('user_id', uid)
+          .maybeSingle();
+
+        if (recProfile) {
+          setRecruiterProfile(recProfile);
           setStudentProfile(null);
+          setUserType('recruiter');
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Check if student profile exists
+        const { data: studProfile } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', uid)
+          .maybeSingle();
+
+        if (studProfile) {
+          setStudentProfile(studProfile);
+          setRecruiterProfile(null);
+          setUserType('student');
+          setIsLoading(false);
+          return;
+        }
+
+        // 3. Check if admin profile exists (optional role check)
+        const { data: adminRole } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', uid)
+          .eq('role', 'admin')
+          .maybeSingle();
+
+        if (adminRole) {
+          setUserType('admin');
+          setRecruiterProfile(null);
+          setStudentProfile(null);
+        } else {
+          setUserType(null); // Google sign up redirect callback state
         }
       } else {
-        localStorage.removeItem('sb_token');
         setUser(null);
         setUserType(null);
         setRecruiterProfile(null);
         setStudentProfile(null);
       }
     } catch (e) {
+      console.error("Error loading session:", e);
       setUser(null);
       setUserType(null);
       setRecruiterProfile(null);
