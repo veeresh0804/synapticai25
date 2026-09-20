@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { describeEdgeErrorAsync } from '@/lib/edgeError';
 
 interface PipelineCandidate {
   application_id: string;
@@ -64,12 +65,22 @@ const RecruiterCRMPage: React.FC = () => {
       const jobIds = jobsData.map(j => j.id);
       const { data: appsBase } = await supabase.from('applications').select('id, student_id, job_id, status, applied_at')
         .in('job_id', jobIds);
-      // Sensitive recruiter-only columns live in a protected view scoped to job ownership
-      const { data: appsDetail } = await supabase
-        .from('recruiter_application_details' as never)
-        .select('id, recruiter_feedback')
-        .in('job_id', jobIds) as unknown as { data: { id: string; recruiter_feedback: string | null }[] | null };
-      const feedbackMap = Object.fromEntries((appsDetail || []).map((d) => [d.id, d.recruiter_feedback]));
+      // Sensitive recruiter_feedback has no view anymore (lint-clean by design);
+      // it is served per-application through an ownership-checked edge function.
+      let feedbackMap: Record<string, string | null> = {};
+      const appIds = (appsBase || []).map((a) => a.id);
+      if (appIds.length > 0) {
+        try {
+          const { data: fbData, error: fbError } = await supabase.functions.invoke('application-feedback', {
+            body: { application_ids: appIds },
+          });
+          if (fbError) throw fbError;
+          const rows = ((fbData as unknown as { feedback?: { id: string; recruiter_feedback: string | null }[] })?.feedback) || [];
+          feedbackMap = Object.fromEntries(rows.map((d) => [d.id, d.recruiter_feedback]));
+        } catch (e) {
+          toast({ title: 'Notes unavailable', description: await describeEdgeErrorAsync(e), variant: 'destructive' });
+        }
+      }
       const apps = (appsBase || []).map((a) => ({ ...a, recruiter_feedback: feedbackMap[a.id] ?? null }));
       const studentIds = [...new Set((apps || []).map((a) => a.student_id))];
       const { data: students } = await supabase.from('students').select('id, name').in('id', studentIds);

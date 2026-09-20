@@ -36,6 +36,9 @@ verify_jwt = false
 [functions.recruiter-agent]
 verify_jwt = false
 
+[functions.application-feedback]
+verify_jwt = false
+
 [functions.seed-users]
 verify_jwt = false
 enabled = false
