@@ -112,7 +112,7 @@ IMPORTANT RANKING CRITERIA:
 Candidates with resume_skills data that closely match the job's required_skills should rank significantly higher. Weight resume-extracted skills at ~40%, GitHub/LeetCode data at ~30%, AI profile analysis at ~20%, and education at ~10%.`;
 
     const aiResponse = await callAI({
-      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.5-flash-lite", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         { role: "system", content: "You are an expert AI recruiter that ranks candidates objectively and provides actionable insights." },
         { role: "user", content: prompt },

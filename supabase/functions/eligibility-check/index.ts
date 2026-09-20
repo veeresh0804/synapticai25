@@ -70,7 +70,7 @@ Provide:
 5. A brief eligibility verdict`;
 
     const aiResponse = await callAI({
-      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.5-flash-lite", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         { role: "system", content: "You are an expert career advisor that helps students understand their job eligibility and provides actionable learning paths." },
         { role: "user", content: prompt },

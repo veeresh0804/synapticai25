@@ -47,7 +47,7 @@ Rules:
 - Use markdown for formatting`;
 
     const response = await callAI({
-      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.5-flash-lite", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         { role: "system", content: systemPrompt },
         ...messages,
