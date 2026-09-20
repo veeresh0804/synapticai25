@@ -1,3 +1,21 @@
+/**
+ * Google's native generateContent API rejects OpenAI-style schema keywords
+ * such as `additionalProperties` (400 "Unknown name"). Recursively strips
+ * them from function-declaration parameters during translation.
+ */
+function stripUnsupportedSchemaKeys(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(stripUnsupportedSchemaKeys);
+  if (node && typeof node === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      if (k === "additionalProperties") continue;
+      out[k] = stripUnsupportedSchemaKeys(v);
+    }
+    return out;
+  }
+  return node;
+}
+
 export async function callAI(body: Record<string, any>) {
   const apiKey = Deno.env.get("AI_PROVIDER_API_KEY");
   if (!apiKey) throw new Error("AI_PROVIDER_API_KEY is not configured");
@@ -62,13 +80,14 @@ export async function callAI(body: Record<string, any>) {
     }
     nativeBody.contents = contents;
 
-    // 3. tools
+    // 3. tools (strip OpenAI-only keywords the native API rejects,
+    // e.g. additionalProperties -> 400 "Unknown name")
     if (Array.isArray(body.tools)) {
       nativeBody.tools = [{
         functionDeclarations: body.tools.map((t: any) => ({
           name: t.function.name,
           description: t.function.description,
-          parameters: t.function.parameters
+          parameters: stripUnsupportedSchemaKeys(t.function.parameters)
         }))
       }];
     }
