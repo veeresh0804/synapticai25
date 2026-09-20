@@ -144,13 +144,16 @@ const CandidateRankingPage: React.FC = () => {
 
   const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
     setUpdatingStatus(applicationId);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('applications')
       .update({ status: newStatus })
-      .eq('id', applicationId);
+      .eq('id', applicationId)
+      .select('id');
 
     if (error) {
       toast({ title: 'Error updating status', description: error.message, variant: 'destructive' });
+    } else if ((Array.isArray(data) ? data : data ? [data] : []).length !== 1) {
+      toast({ title: 'Not saved', description: 'No permission to update this application.', variant: 'destructive' });
     } else {
       setCandidates((prev) =>
         prev.map((c) =>

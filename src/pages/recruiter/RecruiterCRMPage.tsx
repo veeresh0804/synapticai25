@@ -110,8 +110,15 @@ const RecruiterCRMPage: React.FC = () => {
   }, [recruiterProfile?.id]);
 
   const handleStatusChange = async (candidate: PipelineCandidate, newStatus: string) => {
-    const { error } = await supabase.from('applications').update({ status: newStatus }).eq('id', candidate.application_id);
+    const { data, error } = await supabase.from('applications').update({ status: newStatus }).eq('id', candidate.application_id).select('id');
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
+    // RLS-filtered writes succeed with zero rows — treat that as "not saved", not success.
+    // Cloud returns an array; the local mock backend returns the single updated object.
+    const updatedRows = Array.isArray(data) ? data : data ? [data] : [];
+    if (updatedRows.length !== 1) {
+      toast({ title: 'Not saved', description: 'No permission to update this application. It may belong to another recruiter.', variant: 'destructive' });
+      return;
+    }
     setCandidates(prev => prev.map(c => c.application_id === candidate.application_id ? { ...c, status: newStatus } : c));
     setSelectedCandidate(prev => prev && prev.application_id === candidate.application_id ? { ...prev, status: newStatus } : prev);
     toast({ title: 'Status updated' });
@@ -120,8 +127,11 @@ const RecruiterCRMPage: React.FC = () => {
   const handleSaveFeedback = async () => {
     if (!selectedCandidate) return;
     setIsSaving(true);
-    const { error } = await supabase.from('applications').update({ recruiter_feedback: feedbackText }).eq('id', selectedCandidate.application_id);
+    const { data, error } = await supabase.from('applications').update({ recruiter_feedback: feedbackText }).eq('id', selectedCandidate.application_id).select('id');
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); }
+    else if ((Array.isArray(data) ? data : data ? [data] : []).length !== 1) {
+      toast({ title: 'Not saved', description: 'No permission to update this application. It may belong to another recruiter.', variant: 'destructive' });
+    }
     else {
       setCandidates(prev => prev.map(c => c.application_id === selectedCandidate.application_id ? { ...c, feedback: feedbackText } : c));
       toast({ title: 'Feedback saved' });

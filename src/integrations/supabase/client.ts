@@ -406,10 +406,41 @@ class CustomSupabaseClient {
         return chain;
       },
       update(values: any) {
-        return executeDbCall(this._table, 'update', { values, filters: this._filters });
+        // Deferred to match Supabase JS chaining: .update().eq().select() executes on await.
+        // (Previously this executed immediately, so any .eq()/.select() chained after
+        // .update() threw "not a function" in local mock mode.)
+        const self = this;
+        const chain: any = {
+          _updateValues: values,
+          eq(column: string, value: any) { self._filters.push({ type: 'eq', column, value }); return chain; },
+          in(column: string, values: any[]) { self._filters.push({ type: 'in', column, values }); return chain; },
+          select(_cols = '*') { return chain; },
+          single() { return chain; },
+          maybeSingle() { return chain; },
+          then(onfulfilled: any, onrejected?: any) {
+            return executeDbCall(self._table, 'update', { values: chain._updateValues, filters: self._filters }).then(onfulfilled, onrejected);
+          },
+          catch(onrejected: any) {
+            return executeDbCall(self._table, 'update', { values: chain._updateValues, filters: self._filters }).catch(onrejected);
+          },
+        };
+        return chain;
       },
       delete() {
-        return executeDbCall(this._table, 'delete', { filters: this._filters });
+        // Deferred like update() so .delete().eq() chains work in local mock mode.
+        const self = this;
+        const chain: any = {
+          eq(column: string, value: any) { self._filters.push({ type: 'eq', column, value }); return chain; },
+          in(column: string, values: any[]) { self._filters.push({ type: 'in', column, values }); return chain; },
+          select(_cols = '*') { return chain; },
+          then(onfulfilled: any, onrejected?: any) {
+            return executeDbCall(self._table, 'delete', { filters: self._filters }).then(onfulfilled, onrejected);
+          },
+          catch(onrejected: any) {
+            return executeDbCall(self._table, 'delete', { filters: self._filters }).catch(onrejected);
+          },
+        };
+        return chain;
       },
       then(onfulfilled: any, onrejected?: any) {
         const res = executeDbCall(this._table, 'select', {
