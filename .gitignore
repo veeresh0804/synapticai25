@@ -36,3 +36,5 @@ backend/target/
 backend/db/
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/apache-maven-*/
+
