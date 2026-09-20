@@ -148,15 +148,22 @@ export async function callAI(body: Record<string, any>) {
     });
   }
 
-  // Otherwise, use the standard OpenAI-compatible API
+  // Otherwise, use the standard OpenAI-compatible API (one retry on 429/5xx,
+  // since Gemini spikes to 503 under load and usually recovers immediately).
   const adjustedBody = { ...body, model };
 
-  return fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(adjustedBody),
-  });
+  let lastRes: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500 * attempt));
+    lastRes = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(adjustedBody),
+    });
+    if (lastRes.ok || (lastRes.status !== 429 && lastRes.status < 500)) break;
+  }
+  return lastRes as Response;
 }

@@ -1,5 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -101,7 +101,7 @@ Create a personalized 6-month roadmap with specific monthly goals, resources, an
     const result = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (e) {
-      return internalError("career-path", e, "Failed to generate career path", requestId);
+      return handleFunctionError("career-path", e, "Failed to generate career path", requestId);
     }
   }),
 };

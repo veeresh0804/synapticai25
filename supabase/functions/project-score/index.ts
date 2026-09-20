@@ -1,7 +1,7 @@
 
 
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -78,7 +78,7 @@ Limit to top 8 projects. Return ONLY valid JSON, no markdown.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
     } catch (e) {
-      return internalError("project-score", e, "Failed to score project", requestId);
+      return handleFunctionError("project-score", e, "Failed to score project", requestId);
     }
   }),
 };

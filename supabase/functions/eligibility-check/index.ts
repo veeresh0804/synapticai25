@@ -1,5 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -155,7 +155,7 @@ Provide:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
     } catch (e) {
-      return internalError("eligibility-check", e, "Failed to check eligibility", requestId);
+      return handleFunctionError("eligibility-check", e, "Failed to check eligibility", requestId);
     }
   }),
 };

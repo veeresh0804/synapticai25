@@ -1,5 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -255,7 +255,7 @@ export default {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
     } catch (e) {
-      return internalError("extract-profile", e, "Failed to extract profile", requestId);
+      return handleFunctionError("extract-profile", e, "Failed to extract profile", requestId);
     }
   }),
 };

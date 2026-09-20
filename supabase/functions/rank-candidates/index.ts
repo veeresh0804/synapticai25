@@ -1,5 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -208,7 +208,7 @@ Candidates with resume_skills data that closely match the job's required_skills 
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
     } catch (e) {
-      return internalError("rank-candidates", e, "Failed to rank candidates", requestId);
+      return handleFunctionError("rank-candidates", e, "Failed to rank candidates", requestId);
     }
   }),
 };

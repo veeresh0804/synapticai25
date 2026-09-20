@@ -1,7 +1,7 @@
 
 
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -66,7 +66,7 @@ Rules:
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
     } catch (e) {
-      return internalError("interview-sim", e, "Failed to run interview simulation", requestId);
+      return handleFunctionError("interview-sim", e, "Failed to run interview simulation", requestId);
     }
   }),
 };

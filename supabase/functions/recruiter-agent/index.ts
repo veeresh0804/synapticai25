@@ -1,5 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -68,7 +68,7 @@ Rules:
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
     } catch (e) {
-      return internalError("recruiter-agent", e, "Failed to run recruiter agent", requestId);
+      return handleFunctionError("recruiter-agent", e, "Failed to run recruiter agent", requestId);
     }
   }),
 };

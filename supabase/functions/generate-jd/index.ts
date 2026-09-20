@@ -1,7 +1,7 @@
 
 
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
-import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson, handleFunctionError } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -71,7 +71,7 @@ Create a comprehensive, professional job description.`,
     const result = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (e) {
-      return internalError("generate-jd", e, "Failed to generate job description", requestId);
+      return handleFunctionError("generate-jd", e, "Failed to generate job description", requestId);
     }
   }),
 };
