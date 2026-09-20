@@ -88,18 +88,18 @@ const InterviewsPage: React.FC = () => {
             {interviews.map(iv => (
               <Card key={iv.id} className="glass-card-hover">
                 <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold">{iv.job_title}</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="space-y-2 min-w-0">
+                      <h3 className="font-semibold break-words">{iv.job_title}</h3>
                       <p className="text-sm text-muted-foreground">{iv.company_name}</p>
                       <div className="flex items-center gap-3 text-sm">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(iv.scheduled_at), 'PPP')}
+                          {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Date TBD' : format(d, 'PPP'); })()}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {format(new Date(iv.scheduled_at), 'p')} · {iv.duration_minutes}min
+                          {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Time TBD' : format(d, 'p'); })()} · {iv.duration_minutes}min
                         </span>
                       </div>
                       {iv.meeting_link && (

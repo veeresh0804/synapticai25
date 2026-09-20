@@ -14,8 +14,10 @@ export default {
 
     const _body = await safeReqJson(req, "rank-candidates", requestId);
     if (!_body.ok) return _body.response;
-    const { job_id } = _body.value as any;
-    if (!job_id) throw new Error("job_id is required");
+    const { job_id, jobId } = _body.value as any;
+    const jobIdVal = job_id || jobId;
+    if (!jobIdVal) throw new Error("job_id is required");
+    const job_id_final = jobIdVal;
 
     // Resolve recruiter from authenticated user
     const { data: recruiter } = await adminClient.from("recruiters").select("id").eq("user_id", userId).maybeSingle();
@@ -26,7 +28,7 @@ export default {
     const { data: job } = await adminClient
       .from("jobs")
       .select("*")
-      .eq("id", job_id)
+      .eq("id", job_id_final)
       .maybeSingle();
     if (!job) throw new Error("Job not found");
 
@@ -39,7 +41,7 @@ export default {
     const { data: applications } = await adminClient
       .from("applications")
       .select("id, status, student_id, match_analysis")
-      .eq("job_id", job_id);
+      .eq("job_id", job_id_final);
 
     if (!applications || applications.length === 0) {
       return new Response(JSON.stringify({ candidates: [], message: "No applications yet" }), {
@@ -212,3 +214,4 @@ Candidates with resume_skills data that closely match the job's required_skills 
     }
   }),
 };
+

@@ -26,6 +26,11 @@ const Navbar: React.FC = () => {
         { path: '/recruiter/crm', label: 'CRM' },
         { path: '/recruiter/talent', label: 'Talent' },
         { path: '/recruiter/talent-radar', label: 'Radar' },
+        { path: '/recruiter/interviews', label: 'Interviews' },
+        { path: '/recruiter/authenticity', label: 'Authenticity' },
+        { path: '/recruiter/project-scoring', label: 'Projects' },
+        { path: '/recruiter/bias-detector', label: 'Bias Check' },
+        { path: '/recruiter/agent', label: 'AI Agent' },
         { path: '/recruiter/analytics', label: 'Analytics' },
       ];
     }
@@ -34,7 +39,11 @@ const Navbar: React.FC = () => {
         { path: '/student/dashboard', label: 'Dashboard' },
         { path: '/student/jobs', label: 'Browse Jobs' },
         { path: '/student/applications', label: 'Applications' },
+        { path: '/student/interviews', label: 'Interviews' },
         { path: '/student/career-path', label: 'Career Path' },
+        { path: '/student/portfolio', label: 'Portfolio' },
+        { path: '/student/interview-sim', label: 'Mock Interview' },
+        { path: '/student/notifications', label: 'Notifications' },
         { path: '/student/profile', label: 'Profile' },
       ];
     }
@@ -45,7 +54,8 @@ const Navbar: React.FC = () => {
   };
 
   const navLinks = getNavLinks();
-  const isActive = (path: string) => location.pathname.startsWith(path);
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const handleLogout = async () => {
     await logout();
@@ -100,7 +110,7 @@ const Navbar: React.FC = () => {
                   </Link>
                 ))}
 
-                <NotificationBell />
+                {userType === 'student' && <NotificationBell />}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="gap-2 ml-2" aria-label={`Account menu for ${getUserName()}`}>

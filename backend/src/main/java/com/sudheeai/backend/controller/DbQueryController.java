@@ -62,12 +62,13 @@ public class DbQueryController {
         if ("student_applications".equals(table)) normalizedTable = "applications";
 
         List<Map<String, Object>> filters = (List<Map<String, Object>>) body.get("filters");
-        
+
         String eqCol = null;
         Object eqVal = null;
         String inCol = null;
         List<Object> inVals = null;
-        
+        List<Map<String, Object>> extraFilters = new ArrayList<>();
+
         if (filters != null) {
             for (Map<String, Object> filter : filters) {
                 String type = (String) filter.get("type");
@@ -78,10 +79,13 @@ public class DbQueryController {
                 } else if ("in".equals(type)) {
                     inCol = column;
                     inVals = (List<Object>) filter.get("values");
+                } else if ("gte".equals(type) || "lte".equals(type) || "gt".equals(type) || "lt".equals(type)
+                        || "neq".equals(type) || "like".equals(type) || "ilike".equals(type) || "is".equals(type)) {
+                    // Applied in-memory after the base query (PostgREST parity for local mode)
+                    extraFilters.add(filter);
                 } else if (type != null) {
-                    return ResponseEntity.badRequest().body(Map.of("error", "Unsupported filter type: " + type + ". Supported: eq, in"));
+                    return ResponseEntity.badRequest().body(Map.of("error", "Unsupported filter type: " + type + ". Supported: eq, in, gte, lte, gt, lt, neq, like, ilike, is"));
                 }
-                // gte, lte, gt, lt, like, ilike, is, or are not supported by mock backend
             }
         }
 
@@ -403,6 +407,14 @@ public class DbQueryController {
             } else {
                 list.addAll(interviewRepository.findAll());
             }
+            if (!extraFilters.isEmpty()) {
+                List<Interview> filtered = new ArrayList<>();
+                for (Interview iv : list) {
+                    Map<String, Object> row = mapper.convertValue(iv, Map.class);
+                    if (passesExtraFilters(row, extraFilters)) filtered.add(iv);
+                }
+                list = filtered;
+            }
             return ResponseEntity.ok(single ? (list.isEmpty() ? null : list.get(0)) : list);
         }
 
@@ -718,6 +730,150 @@ public class DbQueryController {
         }
 
         return ResponseEntity.badRequest().body("Update failed for table: " + table);
+    }
+
+    @PostMapping("/{table}/delete")
+    public ResponseEntity<?> delete(
+            @PathVariable("table") String table,
+            @RequestBody Map<String, Object> body,
+            @RequestAttribute(value = "userId", required = false) UUID callerUserId,
+            @RequestAttribute(value = "userRole", required = false) String callerRole) {
+        if (callerUserId == null || callerRole == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        boolean isAdmin = "admin".equalsIgnoreCase(callerRole);
+        UUID callerRecruiterId = recruiterRepository.findByUserId(callerUserId).map(Recruiter::getId).orElse(null);
+        List<Map<String, Object>> filters = (List<Map<String, Object>>) body.get("filters");
+        String eqCol = null;
+        Object eqVal = null;
+        String inCol = null;
+        List<Object> inVals = null;
+        if (filters != null) {
+            for (Map<String, Object> filter : filters) {
+                String type = (String) filter.get("type");
+                String column = (String) filter.get("column");
+                if ("eq".equals(type)) {
+                    eqCol = column;
+                    eqVal = filter.get("value");
+                } else if ("in".equals(type)) {
+                    inCol = column;
+                    inVals = (List<Object>) filter.get("values");
+                }
+            }
+        }
+        if (eqCol == null && inCol == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Delete requires an eq or in filter"));
+        }
+        List<UUID> ids = new ArrayList<>();
+        if (eqVal != null && "id".equals(eqCol)) {
+            UUID id = safeParseUUID(eqVal);
+            if (id == null) return ResponseEntity.badRequest().body(Map.of("error", "Invalid UUID"));
+            ids.add(id);
+        } else if (inVals != null && "id".equals(inCol)) {
+            for (Object v : inVals) {
+                UUID id = safeParseUUID(v);
+                if (id != null) ids.add(id);
+            }
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "Delete only supports id eq/in filters"));
+        }
+        if (ids.isEmpty()) return ResponseEntity.ok(Collections.emptyList());
+        try {
+            if ("notifications".equals(table)) {
+                List<Notification> doomed = new ArrayList<>();
+                for (UUID id : ids) notificationRepository.findById(id).ifPresent(doomed::add);
+                if (!isAdmin) {
+                    for (Notification n : doomed) {
+                        if (n.getUserId() == null || !n.getUserId().equals(callerUserId)) {
+                            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+                        }
+                    }
+                }
+                for (Notification n : doomed) notificationRepository.deleteById(n.getId());
+                return ResponseEntity.ok(doomed);
+            }
+            if ("interviews".equals(table)) {
+                List<Interview> doomed = new ArrayList<>();
+                for (UUID id : ids) interviewRepository.findById(id).ifPresent(doomed::add);
+                if (!isAdmin) {
+                    for (Interview iv : doomed) {
+                        boolean ownerRecruiter = callerRecruiterId != null && callerRecruiterId.equals(iv.getRecruiterId());
+                        if (!ownerRecruiter) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+                    }
+                }
+                for (Interview iv : doomed) interviewRepository.deleteById(iv.getId());
+                return ResponseEntity.ok(doomed);
+            }
+            if ("jobs".equals(table)) {
+                List<Job> doomed = new ArrayList<>();
+                for (UUID id : ids) jobRepository.findById(id).ifPresent(doomed::add);
+                if (!isAdmin) {
+                    for (Job j : doomed) {
+                        if (callerRecruiterId == null || !callerRecruiterId.equals(j.getRecruiterId())) {
+                            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+                        }
+                    }
+                }
+                for (Job j : doomed) jobRepository.deleteById(j.getId());
+                return ResponseEntity.ok(doomed);
+            }
+            if ("applications".equals(table)) {
+                if (!isAdmin) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+                List<Application> doomed = new ArrayList<>();
+                for (UUID id : ids) applicationRepository.findById(id).ifPresent(doomed::add);
+                for (Application a : doomed) applicationRepository.deleteById(a.getId());
+                return ResponseEntity.ok(doomed);
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", "Delete not supported for table: " + table));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Delete failed"));
+        }
+    }
+
+    private boolean passesExtraFilters(Map<String, Object> row, List<Map<String, Object>> extraFilters) {
+        for (Map<String, Object> filter : extraFilters) {
+            String type = (String) filter.get("type");
+            String column = (String) filter.get("column");
+            Object expected = filter.get("value");
+            Object actual = row.get(column);
+            int cmp = compareFilterValues(actual, expected);
+            if ("gte".equals(type) && cmp < 0) return false;
+            if ("lte".equals(type) && cmp > 0) return false;
+            if ("gt".equals(type) && cmp <= 0) return false;
+            if ("lt".equals(type) && cmp >= 0) return false;
+            if ("neq".equals(type) && cmp == 0) return false;
+            if ("like".equals(type)) {
+                if (actual == null || expected == null) return false;
+                String pattern = String.valueOf(expected).replace("%", "");
+                if (!String.valueOf(actual).contains(pattern)) return false;
+            }
+            if ("ilike".equals(type)) {
+                if (actual == null || expected == null) return false;
+                String pattern = String.valueOf(expected).replace("%", "").toLowerCase();
+                if (!String.valueOf(actual).toLowerCase().contains(pattern)) return false;
+            }
+            if ("is".equals(type)) {
+                if (expected == null && actual != null) return false;
+                if (expected != null && !String.valueOf(expected).equalsIgnoreCase(String.valueOf(actual))) return false;
+            }
+        }
+        return true;
+    }
+
+    private int compareFilterValues(Object actual, Object expected) {
+        if (actual == null && expected == null) return 0;
+        if (actual == null) return -1;
+        if (expected == null) return 1;
+        if (actual instanceof Number && expected instanceof Number) {
+            return Double.compare(((Number) actual).doubleValue(), ((Number) expected).doubleValue());
+        }
+        try {
+            double a = Double.parseDouble(String.valueOf(actual));
+            double b = Double.parseDouble(String.valueOf(expected));
+            return Double.compare(a, b);
+        } catch (NumberFormatException ignored) {
+        }
+        return String.valueOf(actual).compareTo(String.valueOf(expected));
     }
 
     private UUID safeParseUUID(Object val) {

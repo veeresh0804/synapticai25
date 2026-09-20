@@ -89,7 +89,18 @@ const NotificationBell: React.FC = () => {
     }
     if (notification.link) {
       setOpen(false);
-      navigate(notification.link);
+      const link = notification.link.startsWith('http')
+        ? notification.link
+        : notification.link.startsWith('/student/')
+          ? notification.link
+          : notification.link === '/notifications'
+            ? '/student/notifications'
+            : notification.link;
+      if (link.startsWith('http')) {
+        window.open(link, '_blank', 'noopener');
+      } else {
+        navigate(link);
+      }
     }
   };
 
@@ -148,7 +159,7 @@ const NotificationBell: React.FC = () => {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                   <p className="text-[10px] text-muted-foreground/70 mt-1">
-                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                    {(() => { const d = new Date(n.created_at); return isNaN(d.getTime()) ? '' : formatDistanceToNow(d, { addSuffix: true }); })()}
                   </p>
                 </div>
                 {!n.is_read && (
@@ -160,7 +171,7 @@ const NotificationBell: React.FC = () => {
         </ScrollArea>
         {userType === 'student' && (
         <div className="border-t border-border px-4 py-2">
-          <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => { setOpen(false); navigate('/notifications'); }}>
+          <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => { setOpen(false); navigate('/student/notifications'); }}>
             View all notifications
           </Button>
         </div>

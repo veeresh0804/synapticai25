@@ -27,8 +27,12 @@ const RecruiterRegister: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.companyName || !formData.recruiterName || !formData.email || !formData.password) {
+    if (!formData.companyName.trim() || !formData.recruiterName.trim() || !formData.email.trim() || !formData.password) {
       toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+      return;
+    }
+    if (formData.companyWebsite && formData.companyWebsite.trim() && !/^https?:\/\/.+\..+/.test(formData.companyWebsite.trim())) {
+      toast({ title: 'Invalid website', description: 'Company website must start with http(s)://', variant: 'destructive' });
       return;
     }
     if (formData.password.length < 8) {

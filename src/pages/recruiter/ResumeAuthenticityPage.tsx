@@ -61,7 +61,22 @@ const ResumeAuthenticityPage: React.FC = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(JSON.stringify(data));
-      setResult(data);
+      setResult({
+        authenticity_score: Number(data?.authenticity_score) || 0,
+        risk_level: String(data?.risk_level || 'unknown'),
+        summary: String(data?.summary || ''),
+        signals: Array.isArray(data?.signals)
+          ? data.signals.map((s: unknown) => {
+              const sig = (s || {}) as Record<string, unknown>;
+              return {
+                type: String(sig.type || 'info'),
+                category: String(sig.category || 'general'),
+                message: String(sig.message || ''),
+              };
+            })
+          : [],
+        recommendations: Array.isArray(data?.recommendations) ? data.recommendations : [],
+      });
     } catch (e: unknown) {
       logger.error(e);
       toast({ title: 'Error', description: describeEdgeError(e), variant: 'destructive' });
@@ -71,7 +86,7 @@ const ResumeAuthenticityPage: React.FC = () => {
   };
 
   const filtered = students.filter(s =>
-    !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.institution.toLowerCase().includes(searchQuery.toLowerCase())
+    !searchQuery || (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.institution || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const riskIcon = (level: string) => {
@@ -167,7 +182,10 @@ const ResumeAuthenticityPage: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {result.signals.map((sig, i) => (
+                      {(result.signals || []).length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No signals returned — try again.</p>
+                      ) : (
+                      (result.signals || []).map((sig, i) => (
                         <div key={`check-${i}`} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30">
                           {signalIcon(sig.type)}
                           <div>
@@ -175,19 +193,19 @@ const ResumeAuthenticityPage: React.FC = () => {
                             <p className="text-sm">{sig.message}</p>
                           </div>
                         </div>
-                      ))}
+                      )))}
                     </div>
                   </CardContent>
                 </Card>
 
-                {result.recommendations.length > 0 && (
+                {(result.recommendations || []).length > 0 && (
                   <Card className="glass-card">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base">Recommendations</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-1">
-                        {result.recommendations.map((r, i) => (
+                        {(result.recommendations || []).map((r, i) => (
                           <li key={`rec-${i}`} className="text-sm flex items-start gap-2">
                             <span className="text-primary mt-0.5">•</span> {r}
                           </li>

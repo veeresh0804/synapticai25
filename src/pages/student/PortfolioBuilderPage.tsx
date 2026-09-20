@@ -48,12 +48,16 @@ const PortfolioBuilderPage: React.FC = () => {
     }
   };
 
-  const copyBio = () => {
+  const copyBio = async () => {
     if (portfolio?.summary) {
-      navigator.clipboard.writeText(portfolio.summary);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({ title: 'Copied to clipboard!' });
+      try {
+        await navigator.clipboard.writeText(portfolio.summary);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast({ title: 'Copied to clipboard!' });
+      } catch {
+        toast({ title: 'Copy failed', description: 'Clipboard permission denied.', variant: 'destructive' });
+      }
     }
   };
 
@@ -79,7 +83,7 @@ const PortfolioBuilderPage: React.FC = () => {
 
         <Card className="glass-card mb-8">
           <CardContent className="pt-6">
-            <div className="flex gap-4 items-end">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
               <div className="flex-1">
                 <label className="text-sm font-medium mb-2 block">Target Role</label>
                 <Input value={targetRole} onChange={e => setTargetRole(e.target.value)} placeholder="e.g. Full Stack Developer, ML Engineer..." />
@@ -99,14 +103,14 @@ const PortfolioBuilderPage: React.FC = () => {
               <CardContent className="pt-8 pb-8">
                 <div className="text-center">
                   <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl font-bold text-primary">{studentProfile?.name?.charAt(0)}</span>
+                    <span className="text-3xl font-bold text-primary">{(studentProfile?.name || 'S').charAt(0)}</span>
                   </div>
-                  <h2 className="text-2xl font-bold mb-1">{studentProfile?.name}</h2>
-                  <p className="text-lg text-primary font-medium mb-2">{portfolio.headline}</p>
-                  <p className="text-muted-foreground max-w-2xl mx-auto">{portfolio.bio}</p>
+                  <h2 className="text-2xl font-bold mb-1">{studentProfile?.name || 'Your Portfolio'}</h2>
+                  <p className="text-lg text-primary font-medium mb-2">{portfolio.headline || 'Professional Portfolio'}</p>
+                  <p className="text-muted-foreground max-w-2xl mx-auto">{portfolio.bio || portfolio.summary || ''}</p>
                   <div className="flex gap-2 justify-center mt-4 flex-wrap">
-                    {portfolio.suggested_roles?.map((role: string) => (
-                      <Badge key={role} className="bg-primary/20 text-primary">{role}</Badge>
+                    {(portfolio.suggested_roles || []).map((role: string, i: number) => (
+                      <Badge key={`${role}-${i}`} className="bg-primary/20 text-primary">{role}</Badge>
                     ))}
                   </div>
                 </div>
@@ -117,18 +121,28 @@ const PortfolioBuilderPage: React.FC = () => {
             <Card className="glass-card">
               <CardHeader><CardTitle className="flex items-center gap-2"><Code2 className="w-5 h-5 text-primary" /> Skills</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {portfolio.skills && Object.entries(portfolio.skills).map(([category, skills]: [string, any]) => (
-                    <div key={category}>
-                      <h4 className="text-sm font-semibold text-muted-foreground uppercase mb-2 capitalize">{category.replace('_', ' ')}</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {(skills as string[])?.map((s: string) => (
-                          <Badge key={s} variant="outline">{s}</Badge>
-                        ))}
+                {Array.isArray(portfolio.skills) ? (
+                  <div className="flex flex-wrap gap-2">
+                    {(portfolio.skills as string[]).map((s: string, i: number) => (
+                      <Badge key={`${s}-${i}`} variant="outline">{String(s)}</Badge>
+                    ))}
+                  </div>
+                ) : portfolio.skills ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {Object.entries(portfolio.skills).map(([category, skills]: [string, any]) => (
+                      <div key={category}>
+                        <h4 className="text-sm font-semibold text-muted-foreground uppercase mb-2 capitalize">{category.replace('_', ' ')}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(skills as string[])?.map((s: string, i: number) => (
+                            <Badge key={`${s}-${i}`} variant="outline">{String(s)}</Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Add skills to your profile for a richer portfolio.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -138,17 +152,17 @@ const PortfolioBuilderPage: React.FC = () => {
                 <CardHeader><CardTitle className="flex items-center gap-2"><Briefcase className="w-5 h-5 text-primary" /> Projects</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {portfolio.projects.map((p: { name: string; description: string; technologies?: string[]; highlights?: string[] }, i: number) => (
+                    {portfolio.projects.map((p: Record<string, unknown>, i: number) => (
                       <div key={`proj-${i}`} className="p-4 rounded-lg border border-border hover:border-primary/30 transition-colors">
-                        <h4 className="font-semibold mb-1">{p.name}</h4>
-                        <p className="text-sm text-muted-foreground mb-3">{p.description}</p>
+                        <h4 className="font-semibold mb-1">{String(p.name || p.title || `Project ${i + 1}`)}</h4>
+                        <p className="text-sm text-muted-foreground mb-3">{String(p.description || '')}</p>
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {p.technologies?.map((t: string) => (
-                            <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                          {((p.technologies || p.highlights || []) as string[])?.map((t: string, k: number) => (
+                            <Badge key={`${t}-${k}`} variant="secondary" className="text-xs">{String(t)}</Badge>
                           ))}
                         </div>
-                        {p.highlights?.map((h: string, j: number) => (
-                          <p key={j} className="text-xs text-green-700 flex items-center gap-1"><Star className="w-3 h-3" /> {h}</p>
+                        {((p.highlights || []) as string[])?.map((h: string, j: number) => (
+                          <p key={j} className="text-xs text-green-700 flex items-center gap-1"><Star className="w-3 h-3" /> {String(h)}</p>
                         ))}
                       </div>
                     ))}
@@ -163,15 +177,26 @@ const PortfolioBuilderPage: React.FC = () => {
                 <CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-5 h-5 text-primary" /> Achievements</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {portfolio.achievements.map((a: { icon: string; title: string; detail: string }, i: number) => (
-                      <div key={`tip-${i}`} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-                        {iconMap[a.icon] || <Star className="w-5 h-5 text-primary" />}
-                        <div>
-                          <p className="font-medium text-sm">{a.title}</p>
-                          <p className="text-xs text-muted-foreground">{a.detail}</p>
+                    {portfolio.achievements.map((a: unknown, i: number) => {
+                      if (typeof a === 'string') {
+                        return (
+                          <div key={`ach-${i}`} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                            <Star className="w-5 h-5 text-primary shrink-0" />
+                            <p className="font-medium text-sm">{a}</p>
+                          </div>
+                        );
+                      }
+                      const obj = a as { icon: string; title: string; detail: string };
+                      return (
+                        <div key={`ach-${i}`} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                          {iconMap[obj.icon] || <Star className="w-5 h-5 text-primary" />}
+                          <div>
+                            <p className="font-medium text-sm">{obj.title}</p>
+                            <p className="text-xs text-muted-foreground">{obj.detail}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -200,3 +225,4 @@ const PortfolioBuilderPage: React.FC = () => {
 };
 
 export default PortfolioBuilderPage;
+

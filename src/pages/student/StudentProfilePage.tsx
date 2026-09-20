@@ -196,7 +196,7 @@ const StudentProfilePage: React.FC = () => {
         <Card className="glass-card mb-6">
           <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-muted-foreground text-xs">Name</Label>
                 <p className="font-medium">{studentProfile?.name}</p>
@@ -274,7 +274,7 @@ const StudentProfilePage: React.FC = () => {
                 onChange={(e) => setLinks(prev => ({ ...prev, linkedin: e.target.value }))} />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button className="btn-primary flex-1 gap-2" onClick={handleSave} disabled={isSaving}>
                 <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Profile'}
               </Button>
@@ -307,13 +307,13 @@ const StudentProfilePage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
                   <div className="flex flex-col items-center gap-1">
                     <span className={`text-4xl font-bold ${scoreColor(analysis.overall_score)}`}>
                       {analysis.overall_score}
                     </span>
                     <span className="text-xs text-muted-foreground">Overall Score</span>
-                    <Progress value={analysis.overall_score} className="h-2 w-24" />
+                    <Progress value={Number(analysis.overall_score) || 0} className="h-2 w-24" />
                   </div>
                   <div className="flex-1">
                     <Badge className="mb-2">{analysis.skill_level}</Badge>
@@ -380,7 +380,7 @@ const StudentProfilePage: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Progress value={analysis.github_assessment.score} className="h-1.5 mb-3" />
+                  <Progress value={Number(analysis.github_assessment.score) || 0} className="h-1.5 mb-3" />
                   <ul className="space-y-1">
                     {analysis.github_assessment.highlights.map((h, i) => (
                       <li key={`gh-${i}`} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -397,7 +397,7 @@ const StudentProfilePage: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Progress value={analysis.leetcode_assessment.score} className="h-1.5 mb-3" />
+                  <Progress value={Number(analysis.leetcode_assessment.score) || 0} className="h-1.5 mb-3" />
                   <ul className="space-y-1">
                     {analysis.leetcode_assessment.highlights.map((h, i) => (
                       <li key={`lc-${i}`} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -435,3 +435,5 @@ const StudentProfilePage: React.FC = () => {
 };
 
 export default StudentProfilePage;
+
+

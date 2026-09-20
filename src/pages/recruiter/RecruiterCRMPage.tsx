@@ -83,8 +83,12 @@ const RecruiterCRMPage: React.FC = () => {
       }
       const apps = (appsBase || []).map((a) => ({ ...a, recruiter_feedback: feedbackMap[a.id] ?? null }));
       const studentIds = [...new Set((apps || []).map((a) => a.student_id))];
-      const { data: students } = await supabase.from('students').select('id, name').in('id', studentIds);
-      const { data: interviews } = await supabase.from('interviews').select('application_id').in('application_id', (apps || []).map((a) => a.id));
+      const { data: students } = studentIds.length > 0
+        ? await supabase.from('students').select('id, name').in('id', studentIds)
+        : { data: [] as { id: string; name: string }[] };
+      const { data: interviews } = appIds.length > 0
+        ? await supabase.from('interviews').select('application_id').in('application_id', appIds)
+        : { data: [] as { application_id: string }[] };
 
       const studentMap = Object.fromEntries((students || []).map((s) => [s.id, s.name]));
       const jobMap = Object.fromEntries(jobsData.map(j => [j.id, j.title]));
@@ -109,6 +113,7 @@ const RecruiterCRMPage: React.FC = () => {
     const { error } = await supabase.from('applications').update({ status: newStatus }).eq('id', candidate.application_id);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     setCandidates(prev => prev.map(c => c.application_id === candidate.application_id ? { ...c, status: newStatus } : c));
+    setSelectedCandidate(prev => prev && prev.application_id === candidate.application_id ? { ...prev, status: newStatus } : prev);
     toast({ title: 'Status updated' });
   };
 
@@ -125,14 +130,23 @@ const RecruiterCRMPage: React.FC = () => {
   };
 
   const filteredCandidates = filterJob === 'all' ? candidates : candidates.filter(c => c.job_id === filterJob);
-  const stagesWithCandidates = STAGES.map(stage => ({
-    stage,
-    label: stageLabels[stage],
-    candidates: filteredCandidates.filter(c => c.status === stage),
-  }));
+  const knownStatuses = new Set(STAGES);
+  const orphaned = filteredCandidates.filter(c => !knownStatuses.has(c.status));
+  const stagesWithCandidates = [
+    ...STAGES.map(stage => ({
+      stage,
+      label: stageLabels[stage],
+      candidates: filteredCandidates.filter(c => c.status === stage),
+    })),
+    ...(orphaned.length > 0 ? [{ stage: 'unknown', label: 'Needs Review', candidates: orphaned }] : []),
+  ];
 
   const timeAgo = (dateStr: string) => {
-    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+    const t = new Date(dateStr).getTime();
+    if (!dateStr || !Number.isFinite(t)) return 'Recently';
+    const diff = Date.now() - t;
+    if (diff < 0) return 'Just now';
+    const days = Math.floor(diff / 86400000);
     if (days === 0) return 'Today';
     if (days === 1) return '1d ago';
     return `${days}d ago`;

@@ -113,7 +113,7 @@ const NotificationsPage: React.FC = () => {
       </div>
 
       <Tabs value={filter} onValueChange={setFilter} className="mb-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto max-w-full overflow-x-auto">
           <TabsTrigger value="all" className="gap-1.5">
             <Filter className="w-3.5 h-3.5" /> All
           </TabsTrigger>

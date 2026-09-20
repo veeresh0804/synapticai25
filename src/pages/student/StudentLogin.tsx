@@ -22,7 +22,7 @@ const StudentLogin: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim().toLowerCase(), password);
     if (error) {
       toast({ title: 'Login failed', description: error, variant: 'destructive' });
       setIsLoading(false);
@@ -52,14 +52,14 @@ const StudentLogin: React.FC = () => {
           navigate('/admin/dashboard');
         }
       } else if (user) {
-        toast({ title: 'Profile not found', description: 'Please ensure registration was completed successfully and your email is confirmed.', variant: 'destructive' });
-        logout();
-        setIsLoading(false);
+        // Fresh OAuth user without a profile yet — send to onboarding instead of wiping session.
+        navigate('/auth/callback?portal=student');
       } else {
         setIsLoading(false);
       }
     }
-  }, [authLoading, isAuthenticated, userType, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isAuthenticated, userType, user, navigate]);
 
   return (
     <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">

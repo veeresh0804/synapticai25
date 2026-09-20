@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Radar, Loader2, ArrowLeft, TrendingUp, TrendingDown, Users, BarChart3, Zap } from 'lucide-react';
+import { Radar, Loader2, ArrowLeft, TrendingUp, Users, BarChart3, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,12 +46,15 @@ const TalentRadarPage: React.FC = () => {
       let scoreSum = 0;
       let scoreCount = 0;
       (profiles || []).forEach((p) => {
+        const toArr = (v: unknown): string[] =>
+          Array.isArray(v) ? v.map((x) => String(x || '').trim()).filter(Boolean) : [];
         const skills = [
-          ...((p.gemini_analysis as any)?.technical_skills || []),
-          ...((p.resume_skills as any)?.technical_skills || []),
+          ...toArr((p.gemini_analysis as any)?.technical_skills),
+          ...toArr((p.resume_skills as any)?.technical_skills),
         ];
         skills.forEach((s: string) => {
-          const normalized = s.toLowerCase().trim();
+          const normalized = String(s || '').toLowerCase().trim();
+          if (!normalized) return;
           skillCount[normalized] = (skillCount[normalized] || 0) + 1;
         });
         if ((p.gemini_analysis as any)?.overall_score) {
@@ -73,7 +76,7 @@ const TalentRadarPage: React.FC = () => {
 
       // Institution distribution
       const instCount: Record<string, number> = {};
-      students.forEach((s) => { instCount[s.institution] = (instCount[s.institution] || 0) + 1; });
+      students.forEach((s) => { const k = s.institution || 'Unknown'; instCount[k] = (instCount[k] || 0) + 1; });
       setInstitutions(Object.entries(instCount).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })));
 
       // Graduation year distribution
@@ -211,7 +214,7 @@ const TalentRadarPage: React.FC = () => {
                 {degreeDist.map((d, i) => (
                   <div key={`rec-${i}`} className="flex items-center gap-3">
                     <span className="text-sm font-medium flex-1">{d.degree}</span>
-                    <Progress value={(d.count / totalStudents) * 100} className="h-1.5 w-24" />
+                    <Progress value={(totalStudents > 0 ? (d.count / totalStudents) * 100 : 0)} className="h-1.5 w-24" />
                     <Badge variant="outline">{d.count}</Badge>
                   </div>
                 ))}
@@ -226,3 +229,4 @@ const TalentRadarPage: React.FC = () => {
 };
 
 export default TalentRadarPage;
+

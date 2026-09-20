@@ -74,9 +74,9 @@ const ApplicationsPage: React.FC = () => {
               return (
                 <Card key={app.id} className="glass-card">
                   <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <h3 className="font-semibold">{app.jobs?.title || 'Job'}</h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <h3 className="font-semibold truncate">{app.jobs?.title || 'Job'}</h3>
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                           <Building2 className="w-3 h-3" />{app.jobs?.recruiters?.company_name || 'Company'} • Applied {timeAgo(app.applied_at)}
                         </p>

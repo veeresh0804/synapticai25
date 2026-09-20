@@ -138,7 +138,7 @@ const JobDetailPage: React.FC = () => {
               </div>
             )}
 
-            <div className="flex gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button className="btn-primary gap-2" onClick={handleApply} disabled={isApplying || hasApplied}>
                 <CheckCircle2 className="w-4 h-4" />
                 {hasApplied ? 'Already Applied' : isApplying ? 'Applying...' : 'Apply Now'}

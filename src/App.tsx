@@ -56,9 +56,11 @@ const ProtectedRoute = ({
   children: React.ReactNode;
   requiredType: UserType;
 }) => {
-  const { isAuthenticated, userType, isLoading } = useAuth();
+  const { isAuthenticated, userType, user, isLoading } = useAuth();
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><span>Loading...</span></div>;
   if (!isAuthenticated) return <Navigate to={`/${requiredType ?? 'student'}/login`} replace />;
+  // Fresh OAuth session without a profile yet — route to onboarding instead of bouncing.
+  if (!userType && user) return <Navigate to="/auth/callback" replace />;
   if (userType !== requiredType) {
     if (userType) return <Navigate to={`/${userType}/dashboard`} replace />;
     return <Navigate to="/" replace />;
@@ -108,6 +110,7 @@ const App = () => (
                 <Route path="/student/profile" element={<ProtectedRoute requiredType="student"><StudentProfilePage /></ProtectedRoute>} />
                 <Route path="/student/interviews" element={<ProtectedRoute requiredType="student"><InterviewsPage /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute requiredType="student"><NotificationsPage /></ProtectedRoute>} />
+                <Route path="/student/notifications" element={<ProtectedRoute requiredType="student"><NotificationsPage /></ProtectedRoute>} />
                 <Route path="/student/career-path" element={<ProtectedRoute requiredType="student"><CareerPathPage /></ProtectedRoute>} />
                 <Route path="/student/portfolio" element={<ProtectedRoute requiredType="student"><PortfolioBuilderPage /></ProtectedRoute>} />
                 <Route path="/student/interview-sim" element={<ProtectedRoute requiredType="student"><InterviewSimPage /></ProtectedRoute>} />

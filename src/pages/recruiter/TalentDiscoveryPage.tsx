@@ -63,11 +63,13 @@ const TalentDiscoveryPage: React.FC = () => {
         if (leetcodeData?.solved?.all) reputation += Math.min(leetcodeData.solved.all * 0.1, 15);
         reputation = Math.round(Math.min(reputation, 100));
 
+        const toStrArr = (v: unknown): string[] =>
+          Array.isArray(v) ? v.map((x) => String(x || '').trim()).filter(Boolean) : [];
         const techSkills = [
-          ...(analysis?.technical_skills || []),
-          ...(resumeSkills?.technical_skills || []),
+          ...toStrArr(analysis?.technical_skills),
+          ...toStrArr(resumeSkills?.technical_skills),
         ];
-        const uniqueSkills = [...new Set(techSkills.map((s: string) => s))];
+        const uniqueSkills = [...new Set(techSkills)];
 
         return {
           student_id: s.id,
@@ -100,9 +102,9 @@ const TalentDiscoveryPage: React.FC = () => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(t =>
-        t.name.toLowerCase().includes(q) ||
-        t.institution.toLowerCase().includes(q) ||
-        t.technical_skills.some(s => s.toLowerCase().includes(q))
+        (t.name || '').toLowerCase().includes(q) ||
+        (t.institution || '').toLowerCase().includes(q) ||
+        (t.technical_skills || []).some(s => String(s || '').toLowerCase().includes(q))
       );
     }
 
@@ -192,8 +194,13 @@ const TalentDiscoveryPage: React.FC = () => {
                     <span className={`text-2xl font-bold ${scoreColor(t.reputation_score)}`}>{t.reputation_score}</span>
                     <Progress value={t.reputation_score} className="h-1.5 w-16" />
                     <span className="text-xs text-muted-foreground">Reputation</span>
-                    {t.skill_level !== 'unknown' && (
+                    {t.skill_level !== 'unknown' ? (
                       <Badge variant="secondary" className="text-xs capitalize">{t.skill_level}</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">No data</Badge>
+                    )}
+                    {!t.github_url && (
+                      <Badge variant="outline" className="text-xs">No GitHub</Badge>
                     )}
                   </div>
                   <div className="flex-1 space-y-2">
@@ -205,7 +212,7 @@ const TalentDiscoveryPage: React.FC = () => {
                           <span>{t.degree} {t.branch} — {t.institution} ({t.graduation_year})</span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                         {t.github_url && (
                           <a href={t.github_url} target="_blank" rel="noopener noreferrer">
                             <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-muted"><Github className="w-3 h-3" /> GitHub</Badge>

@@ -77,7 +77,32 @@ const ProjectScoringPage: React.FC = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(JSON.stringify(data));
-      setResult(data);
+      // Normalize so missing arrays/objects never crash to a blank screen.
+      setResult({
+        overall_score: Number(data?.overall_score) || 0,
+        tech_diversity_score: Number(data?.tech_diversity_score) || 0,
+        summary: String(data?.summary || ''),
+        top_technologies: Array.isArray(data?.top_technologies) ? data.top_technologies : [],
+        projects: Array.isArray(data?.projects)
+          ? data.projects.map((p: unknown) => {
+              const proj = (p || {}) as Record<string, unknown>;
+              const scores = (proj.scores || {}) as Record<string, unknown>;
+              return {
+                name: String(proj.name || 'Project'),
+                description: String(proj.description || ''),
+                overall: Number(proj.overall) || 0,
+                scores: {
+                  architecture: Number(scores.architecture) || 0,
+                  documentation: Number(scores.documentation) || 0,
+                  code_quality: Number(scores.code_quality) || 0,
+                  community: Number(scores.community) || 0,
+                },
+                highlights: Array.isArray(proj.highlights) ? (proj.highlights as string[]) : [],
+                languages: Array.isArray(proj.languages) ? (proj.languages as string[]) : [],
+              };
+            })
+          : [],
+      });
     } catch (e: unknown) {
       logger.error(e);
       toast({ title: 'Error', description: describeEdgeError(e), variant: 'destructive' });
@@ -87,7 +112,7 @@ const ProjectScoringPage: React.FC = () => {
   };
 
   const filtered = students.filter(s =>
-    !searchQuery || s.name.toLowerCase().includes(searchQuery.toLowerCase())
+    !searchQuery || (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.institution || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const scoreColor = (score: number) => {
@@ -157,7 +182,7 @@ const ProjectScoringPage: React.FC = () => {
                       <div className="flex-1">
                         <p className="text-sm text-muted-foreground">{result.summary}</p>
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {result.top_technologies.map((t, i) => (
+                          {(result.top_technologies || []).map((t, i) => (
                             <Badge key={`tech-${t}-${i}`} className="badge-primary text-xs">{t}</Badge>
                           ))}
                         </div>
@@ -167,7 +192,7 @@ const ProjectScoringPage: React.FC = () => {
                 </Card>
 
                 {/* Projects */}
-                {result.projects.map((proj, i) => (
+                {(result.projects || []).map((proj, i) => (
                   <Card key={`proj-${i}`} className="glass-card">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between mb-3">

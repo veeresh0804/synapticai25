@@ -30,6 +30,50 @@ interface CareerPath {
   interview_tips: string[];
 }
 
+const asStringArray = (v: unknown): string[] =>
+  Array.isArray(v) ? v.map((x) => String(x || '').trim()).filter(Boolean) : [];
+
+function normalizeCareerPath(data: unknown, fallbackRole: string): CareerPath | null {
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+
+  // Backend shape A (new/Java + updated edge): monthly_plan[{month,title,goals,resources,project_idea}]
+  // Backend shape B (old edge): roadmap[{month,focus,topics,resources,milestones}]
+  const rawPlan = Array.isArray(d.monthly_plan) ? d.monthly_plan : Array.isArray(d.roadmap) ? d.roadmap : [];
+  const monthly_plan: MonthlyPlan[] = (rawPlan as Record<string, unknown>[]).slice(0, 6).map((m, idx) => {
+    const r = (m || {}) as Record<string, unknown>;
+    const monthNum = typeof r.month === 'number' ? r.month : idx + 1;
+    const title = String(r.title || r.focus || `Month ${monthNum} focus`).trim();
+    const goals = asStringArray(r.goals ?? r.topics ?? r.milestones);
+    const resources = asStringArray(r.resources);
+    const project_idea = String(
+      r.project_idea || (Array.isArray(r.milestones) ? (r.milestones as string[])[0] : '') || '',
+    ).trim();
+    return {
+      month: monthNum,
+      title: title || `Month ${monthNum}`,
+      goals: goals.length > 0 ? goals : [`Focus on ${title}`],
+      resources,
+      project_idea: project_idea || `Build a portfolio project applying ${title} and push it to GitHub.`,
+    };
+  });
+
+  const readinessRaw = d.readiness_score ?? d.readinessScore ?? 0;
+  const readiness_score = typeof readinessRaw === 'number' ? readinessRaw : Number(readinessRaw) || 0;
+
+  return {
+    target_role: String(d.target_role || d.targetRole || fallbackRole || 'Your target role').trim(),
+    current_level: String(d.current_level || 'beginner').trim(),
+    readiness_score: Math.max(0, Math.min(100, Math.round(readiness_score))),
+    summary: String(d.summary || 'Personalized roadmap generated from your profile.').trim(),
+    skill_gaps: asStringArray(d.skill_gaps ?? d.skillGaps),
+    existing_strengths: asStringArray(d.existing_strengths ?? d.strengths),
+    monthly_plan,
+    recommended_certifications: asStringArray(d.recommended_certifications),
+    interview_tips: asStringArray(d.interview_tips ?? d.tips),
+  };
+}
+
 const CareerPathPage: React.FC = () => {
   const { toast } = useToast();
   const [targetRole, setTargetRole] = useState('');
@@ -51,7 +95,16 @@ const CareerPathPage: React.FC = () => {
         toast({ title: 'Generation failed', description: describeEdgeError(data), variant: 'destructive' });
         return;
       }
-      setCareerPath(data);
+      const normalized = normalizeCareerPath(data, targetRole);
+      if (!normalized || normalized.monthly_plan.length === 0) {
+        toast({
+          title: 'Incomplete result — please retry',
+          description: 'AI returned an empty roadmap. Hit Generate again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setCareerPath(normalized);
       toast({ title: 'Career path generated!' });
     } catch (e: unknown) {
       logger.error(e);
@@ -62,8 +115,9 @@ const CareerPathPage: React.FC = () => {
   };
 
   const scoreColor = (score: number) => {
-    if (score >= 75) return 'text-green-600';
-    if (score >= 50) return 'text-yellow-600';
+    const s = Number(score) || 0;
+    if (s >= 75) return 'text-green-600';
+    if (s >= 50) return 'text-yellow-600';
     return 'text-red-500';
   };
 
@@ -78,7 +132,7 @@ const CareerPathPage: React.FC = () => {
 
         <Card className="glass-card mb-8">
           <CardContent className="pt-6">
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Input
                 placeholder="e.g. AI Engineer, Backend Developer, DevOps Engineer..."
                 value={targetRole}
@@ -136,11 +190,15 @@ const CareerPathPage: React.FC = () => {
                   <CardTitle className="text-base">✅ Your Strengths</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-1.5">
-                    {careerPath.existing_strengths.map((s, i) => (
-                      <Badge key={`skill-${s}-${i}`} variant="secondary" className="text-xs">{s}</Badge>
-                    ))}
-                  </div>
+                  {(careerPath.existing_strengths || []).length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(careerPath.existing_strengths || []).map((s, i) => (
+                        <Badge key={`skill-${s}-${i}`} variant="secondary" className="text-xs">{s}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Add GitHub / LeetCode / resume to your profile for a richer strengths analysis.</p>
+                  )}
                 </CardContent>
               </Card>
               <Card className="glass-card">
@@ -148,11 +206,15 @@ const CareerPathPage: React.FC = () => {
                   <CardTitle className="text-base">🎯 Skill Gaps</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-1.5">
-                    {careerPath.skill_gaps.map((s, i) => (
-                      <Badge key={`gap-${s}-${i}`} variant="outline" className="text-xs">{s}</Badge>
-                    ))}
-                  </div>
+                  {(careerPath.skill_gaps || []).length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(careerPath.skill_gaps || []).map((s, i) => (
+                        <Badge key={`gap-${s}-${i}`} variant="outline" className="text-xs">{s}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No major gaps detected — focus on the roadmap below.</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -162,8 +224,15 @@ const CareerPathPage: React.FC = () => {
               <BookOpen className="w-5 h-5 text-primary" /> 6-Month Roadmap
             </h2>
             <div className="space-y-4 mb-6">
-              {careerPath.monthly_plan.map((month) => (
-                <Card key={month.month} className="glass-card">
+              {(careerPath.monthly_plan || []).length === 0 ? (
+                <Card className="glass-card">
+                  <CardContent className="pt-6 text-sm text-muted-foreground">
+                    Roadmap came back empty — please hit Generate again.
+                  </CardContent>
+                </Card>
+              ) : (
+                (careerPath.monthly_plan || []).map((month, mi) => (
+                <Card key={`month-${month.month}-${mi}`} className="glass-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <span className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
@@ -176,33 +245,36 @@ const CareerPathPage: React.FC = () => {
                     <div>
                       <p className="text-xs font-medium text-muted-foreground mb-1">Goals</p>
                       <ul className="space-y-1">
-                        {month.goals.map((g, i) => (
-                          <li key={`task-${i}`} className="text-sm flex items-start gap-2">
+                        {(month.goals || []).map((g, i) => (
+                          <li key={`task-${mi}-${i}`} className="text-sm flex items-start gap-2">
                             <ChevronRight className="w-3 h-3 text-primary mt-1 shrink-0" /> {g}
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Resources</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {month.resources.map((r, i) => (
-                          <Badge key={`res-${r}-${i}`} variant="secondary" className="text-xs">{r}</Badge>
-                        ))}
+                    {(month.resources || []).length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Resources</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(month.resources || []).map((r, i) => (
+                            <Badge key={`res-${mi}-${r}-${i}`} variant="secondary" className="text-xs">{r}</Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-xs font-medium text-muted-foreground mb-1">💡 Project Idea</p>
                       <p className="text-sm">{month.project_idea}</p>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Certifications & Tips */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {careerPath.recommended_certifications.length > 0 && (
+              {(careerPath.recommended_certifications || []).length > 0 && (
                 <Card className="glass-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -211,7 +283,7 @@ const CareerPathPage: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-1">
-                      {careerPath.recommended_certifications.map((c, i) => (
+                      {(careerPath.recommended_certifications || []).map((c, i) => (
                         <li key={`tip-${i}`} className="text-sm flex items-start gap-2">
                           <ChevronRight className="w-3 h-3 text-primary mt-1 shrink-0" /> {c}
                         </li>
@@ -220,7 +292,7 @@ const CareerPathPage: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
-              {careerPath.interview_tips.length > 0 && (
+              {(careerPath.interview_tips || []).length > 0 && (
                 <Card className="glass-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -229,7 +301,7 @@ const CareerPathPage: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-1">
-                      {careerPath.interview_tips.map((t, i) => (
+                      {(careerPath.interview_tips || []).map((t, i) => (
                         <li key={`next-${i}`} className="text-sm flex items-start gap-2">
                           <ChevronRight className="w-3 h-3 text-primary mt-1 shrink-0" /> {t}
                         </li>
@@ -247,3 +319,4 @@ const CareerPathPage: React.FC = () => {
 };
 
 export default CareerPathPage;
+

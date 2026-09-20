@@ -18,7 +18,7 @@ const ForgotPasswordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
@@ -65,8 +65,11 @@ const ForgotPasswordPage: React.FC = () => {
               </CardContent>
             </form>
           ) : (
-            <CardContent className="text-center text-muted-foreground text-sm">
-              Didn't receive it? Check your spam folder or try again.
+            <CardContent className="text-center text-muted-foreground text-sm space-y-3">
+              <p>Didn't receive it? Check your spam folder or try again.</p>
+              <Button variant="outline" className="w-full" onClick={() => { setSent(false); setEmail(''); }}>
+                Use a different email
+              </Button>
             </CardContent>
           )}
 

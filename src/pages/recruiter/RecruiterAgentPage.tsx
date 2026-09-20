@@ -63,6 +63,7 @@ const RecruiterAgentPage: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         toast({ title: 'Not signed in', description: 'Please sign in to continue.', variant: 'destructive' });
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Please sign in to continue chatting.' }]);
         return;
       }
       const token = session.access_token;

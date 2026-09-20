@@ -127,11 +127,42 @@ const InterviewSchedulePage: React.FC = () => {
       toast({ title: 'Please fill required fields', variant: 'destructive' });
       return;
     }
+    const scheduledDate = new Date(form.scheduled_at);
+    if (isNaN(scheduledDate.getTime())) {
+      toast({ title: 'Invalid date', description: 'Please pick a valid date and time.', variant: 'destructive' });
+      return;
+    }
+    if (scheduledDate.getTime() < Date.now() - 60_000) {
+      toast({ title: 'Date is in the past', description: 'Please pick a future slot.', variant: 'destructive' });
+      return;
+    }
+    const duration = parseInt(form.duration_minutes, 10);
+    if (!Number.isFinite(duration) || duration < 15 || duration > 240) {
+      toast({ title: 'Invalid duration', description: 'Duration must be 15–240 minutes.', variant: 'destructive' });
+      return;
+    }
+    if (form.meeting_link && !/^https?:\/\/.+\..+/.test(form.meeting_link.trim())) {
+      toast({ title: 'Invalid meeting link', description: 'Must start with http(s)://', variant: 'destructive' });
+      return;
+    }
+    const clash = interviews.some(iv => {
+      if (iv.status === 'cancelled' || !iv.scheduled_at) return false;
+      const t = new Date(iv.scheduled_at).getTime();
+      return Number.isFinite(t) && Math.abs(t - scheduledDate.getTime()) < duration * 60_000;
+    });
+    if (clash) {
+      toast({ title: 'Double booking', description: 'Another interview overlaps this slot.', variant: 'destructive' });
+      return;
+    }
 
     const app = shortlisted.find(a => a.id === form.application_id);
-    if (!app) return;
+    if (!app) {
+      toast({ title: 'Candidate not found', description: 'Refresh and try again.', variant: 'destructive' });
+      return;
+    }
 
     setIsSaving(true);
+    // datetime-local is local time without TZ — persist as ISO UTC so display matches.
     const { data, error } = await supabase
       .from('interviews')
       .insert({
@@ -139,9 +170,9 @@ const InterviewSchedulePage: React.FC = () => {
         job_id: app.job_id,
         student_id: app.student_id,
         recruiter_id: recruiterProfile.id,
-        scheduled_at: form.scheduled_at,
-        duration_minutes: parseInt(form.duration_minutes) || 60,
-        meeting_link: form.meeting_link || null,
+        scheduled_at: scheduledDate.toISOString(),
+        duration_minutes: duration,
+        meeting_link: form.meeting_link.trim() || null,
         notes: form.notes || null,
       })
       .select()
@@ -188,7 +219,7 @@ const InterviewSchedulePage: React.FC = () => {
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
         </Button>
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Calendar className="w-8 h-8 text-primary" /> Interview Scheduler
           </h1>
@@ -280,11 +311,11 @@ const InterviewSchedulePage: React.FC = () => {
                           <div className="flex items-center gap-3 text-sm">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {format(new Date(iv.scheduled_at), 'PPP')}
+                              {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Date TBD' : format(d, 'PPP'); })()}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {format(new Date(iv.scheduled_at), 'p')} · {iv.duration_minutes}min
+                              {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Time TBD' : format(d, 'p'); })()} · {iv.duration_minutes}min
                             </span>
                           </div>
                           {iv.meeting_link && (
@@ -316,3 +347,4 @@ const InterviewSchedulePage: React.FC = () => {
 };
 
 export default InterviewSchedulePage;
+

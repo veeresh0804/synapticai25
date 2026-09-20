@@ -42,11 +42,11 @@ const AdminDashboard: React.FC = () => {
       setIsAdmin(true);
 
       const [s, r, j, a, iv] = await Promise.all([
-        supabase.from('students').select('*'),
-        supabase.from('recruiters').select('*'),
-        supabase.from('jobs').select('*'),
-        supabase.from('applications').select('*'),
-        supabase.from('interviews').select('*'),
+        supabase.from('students').select('*').limit(500),
+        supabase.from('recruiters').select('*').limit(500),
+        supabase.from('jobs').select('*').limit(500),
+        supabase.from('applications').select('id,student_id,job_id,status,applied_at,updated_at').limit(1000),
+        supabase.from('interviews').select('*').limit(500),
       ]);
 
       setStudents((s.data || []) as Student[]);
@@ -78,11 +78,15 @@ const AdminDashboard: React.FC = () => {
   const appStatusData = [
     { name: 'Pending', count: applications.filter(a => a.status === 'pending').length },
     { name: 'Shortlisted', count: applications.filter(a => a.status === 'shortlisted').length },
+    { name: 'Interview', count: applications.filter(a => a.status === 'interview').length },
+    { name: 'Offered', count: applications.filter(a => a.status === 'offered').length },
+    { name: 'Hired', count: applications.filter(a => a.status === 'hired').length },
     { name: 'Rejected', count: applications.filter(a => a.status === 'rejected').length },
   ];
 
   const jobsByMonth = jobs.reduce((acc: Record<string, number>, job) => {
-    const month = new Date(job.created_at).toLocaleString('default', { month: 'short', year: '2-digit' });
+    const d = new Date(job.created_at);
+    const month = isNaN(d.getTime()) ? 'Unknown' : d.toLocaleString('default', { month: 'short', year: '2-digit' });
     acc[month] = (acc[month] || 0) + 1;
     return acc;
   }, {});

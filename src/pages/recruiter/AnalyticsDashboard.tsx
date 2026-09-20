@@ -46,16 +46,23 @@ const AnalyticsDashboard: React.FC = () => {
         const jobApps = (apps || []).filter(a => a.job_id === job.id);
         const pending = jobApps.filter(a => a.status === 'pending').length;
         const shortlisted = jobApps.filter(a => a.status === 'shortlisted').length;
+        const interview = jobApps.filter(a => a.status === 'interview').length;
+        const offered = jobApps.filter(a => a.status === 'offered').length;
+        const hired = jobApps.filter(a => a.status === 'hired').length;
         const rejected = jobApps.filter(a => a.status === 'rejected').length;
         const total = jobApps.length;
+        const advanced = shortlisted + interview + offered + hired;
         return {
           id: job.id,
           title: job.title,
           total,
           pending,
-          shortlisted,
+          shortlisted: advanced,
+          interview,
+          offered,
+          hired,
           rejected,
-          conversionRate: total > 0 ? Math.round((shortlisted / total) * 100) : 0,
+          conversionRate: total > 0 ? Math.round((advanced / total) * 100) : 0,
         };
       });
 
@@ -191,7 +198,7 @@ const AnalyticsDashboard: React.FC = () => {
                       <h3 className="font-semibold text-sm">{job.title}</h3>
                       <Badge className="badge-primary">{job.conversionRate}% conversion</Badge>
                     </div>
-                    <div className="grid grid-cols-4 gap-3 text-center text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
                       <div>
                         <p className="text-lg font-bold">{job.total}</p>
                         <p className="text-muted-foreground">Total</p>
@@ -222,3 +229,4 @@ const AnalyticsDashboard: React.FC = () => {
 };
 
 export default AnalyticsDashboard;
+

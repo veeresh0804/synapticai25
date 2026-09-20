@@ -73,7 +73,7 @@ const StudentRegister: React.FC = () => {
         institution: formData.institution,
         degree: formData.degree,
         branch: formData.branch,
-        graduation_year: parseInt(formData.graduationYear) || 2025,
+        graduation_year: (() => { const y = parseInt(formData.graduationYear, 10); const cur = new Date().getFullYear(); return Number.isFinite(y) ? Math.min(2100, Math.max(1950, y)) : cur + 1; })(),
       });
 
       if (profileError) {
@@ -123,7 +123,7 @@ const StudentRegister: React.FC = () => {
         institution: formData.institution,
         degree: formData.degree,
         branch: formData.branch,
-        graduation_year: parseInt(formData.graduationYear) || 2025,
+        graduation_year: (() => { const y = parseInt(formData.graduationYear, 10); const cur = new Date().getFullYear(); return Number.isFinite(y) ? Math.min(2100, Math.max(1950, y)) : cur + 1; })(),
       });
 
       if (profileError) {
@@ -224,7 +224,7 @@ const StudentRegister: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Degree *</Label>
                   <Select onValueChange={(v) => updateField('degree', v)}>
@@ -363,3 +363,5 @@ const StudentRegister: React.FC = () => {
 };
 
 export default StudentRegister;
+
+

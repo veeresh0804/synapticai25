@@ -11,17 +11,31 @@ const AuthCallbackPage: React.FC = () => {
 
   useEffect(() => {
     const handleCallback = async () => {
+      const urlError = searchParams.get('error') || searchParams.get('error_description');
       const portal = searchParams.get('portal') as 'student' | 'recruiter' | null;
       const fallbackPortal = portal === 'recruiter' ? 'recruiter' : 'student';
+      if (urlError) {
+        toast({ title: 'Sign-in cancelled', description: String(urlError), variant: 'destructive' });
+        navigate(`/${fallbackPortal}/login`);
+        return;
+      }
 
       // Supabase JS v2 auto-exchanges the hash tokens on initialisation.
-      // We just need to wait for the session to be available.
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // Retry briefly — first getSession() can race the exchange.
+      let session = null as Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
+      let error = null as unknown;
+      for (let i = 0; i < 5; i++) {
+        const res = await supabase.auth.getSession();
+        session = res.data.session;
+        error = res.error;
+        if (session?.user || error) break;
+        await new Promise((r) => setTimeout(r, 400));
+      }
 
       if (error || !session?.user) {
         toast({
           title: 'Sign-in failed',
-          description: error?.message || 'Could not complete Google sign-in. Please try again.',
+          description: (error as Error)?.message || 'Could not complete Google sign-in. Please try again.',
           variant: 'destructive',
         });
         navigate(`/${fallbackPortal}/login`);
@@ -57,7 +71,8 @@ const AuthCallbackPage: React.FC = () => {
     };
 
     handleCallback();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4">

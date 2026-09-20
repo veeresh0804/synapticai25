@@ -35,7 +35,7 @@ const RecruiterDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!recruiterProfile?.id) return;
+    if (!recruiterProfile?.id) { setIsLoading(false); return; }
     const fetchJobs = async () => {
       const { data } = await supabase
         .from('jobs')
@@ -54,7 +54,10 @@ const RecruiterDashboard: React.FC = () => {
   const activeJobs = jobs.filter(j => j.status === 'active').length;
 
   const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    const t = new Date(dateStr).getTime();
+    if (!dateStr || !Number.isFinite(t)) return 'Recently';
+    const diff = Date.now() - t;
+    if (diff < 0) return 'Just now';
     const days = Math.floor(diff / 86400000);
     if (days === 0) return 'Today';
     if (days === 1) return '1 day ago';
@@ -175,9 +178,9 @@ const RecruiterDashboard: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {jobs.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/30 transition-colors">
-                    <div className="space-y-1">
-                      <h3 className="font-semibold">{job.title}</h3>
+                  <div key={job.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-border hover:bg-muted/30 transition-colors">
+                    <div className="space-y-1 min-w-0">
+                      <h3 className="font-semibold truncate">{job.title}</h3>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>{job.location}</span>
                         <span>•</span>

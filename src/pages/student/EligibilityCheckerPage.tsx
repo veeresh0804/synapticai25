@@ -16,12 +16,26 @@ interface Resource {
   type: string;
 }
 
+interface RawRoadmapItem {
+  skill?: string;
+  topic?: string;
+  priority?: string;
+  timeline?: string;
+  duration?: string;
+  resources?: Array<Resource | string>;
+  description?: string;
+  detail?: string;
+  action?: string;
+  project_idea?: string;
+}
+
 interface RoadmapItem {
   skill: string;
   priority: string;
   timeline: string;
   resources: Resource[];
   description: string;
+  action: string;
 }
 
 interface EligibilityResult {
@@ -32,6 +46,134 @@ interface EligibilityResult {
   missing_skills: string[];
   roadmap: RoadmapItem[];
   tips: string[];
+}
+
+// Curated fallback links so students always get clickable shortlist guidance
+// even when the AI returns plain strings without URLs.
+const SKILL_DOCS: Record<string, { title: string; url: string; type: string }[]> = {
+  'node.js': [
+    { title: 'Node.js Official Docs — Getting Started', url: 'https://nodejs.org/en/docs', type: 'docs' },
+    { title: 'Express.js Guide — Build REST APIs', url: 'https://expressjs.com/en/starter/installing.html', type: 'course' },
+  ],
+  nodejs: [
+    { title: 'Node.js Official Docs — Getting Started', url: 'https://nodejs.org/en/docs', type: 'docs' },
+    { title: 'Express.js Guide — Build REST APIs', url: 'https://expressjs.com/en/starter/installing.html', type: 'course' },
+  ],
+  postgresql: [
+    { title: 'PostgreSQL Tutorial — Learn SQL', url: 'https://www.postgresqltutorial.com/', type: 'course' },
+    { title: 'PostgreSQL Official Docs', url: 'https://www.postgresql.org/docs/', type: 'docs' },
+  ],
+  postgres: [
+    { title: 'PostgreSQL Tutorial — Learn SQL', url: 'https://www.postgresqltutorial.com/', type: 'course' },
+    { title: 'PostgreSQL Official Docs', url: 'https://www.postgresql.org/docs/', type: 'docs' },
+  ],
+  'rest apis': [
+    { title: 'REST API Tutorial — Design Principles', url: 'https://restfulapi.net/', type: 'docs' },
+    { title: 'MDN — HTTP & REST Basics', url: 'https://developer.mozilla.org/en-US/docs/Web/HTTP', type: 'docs' },
+  ],
+  'rest api': [
+    { title: 'REST API Tutorial — Design Principles', url: 'https://restfulapi.net/', type: 'docs' },
+  ],
+  redis: [
+    { title: 'Redis University — Data Structures & Caching', url: 'https://university.redis.com/', type: 'course' },
+    { title: 'Redis Docs — Quick Start', url: 'https://redis.io/docs/getting-started/', type: 'docs' },
+  ],
+  docker: [
+    { title: 'Docker Get Started — Containerize an App', url: 'https://docs.docker.com/get-started/', type: 'docs' },
+    { title: 'Docker Curriculum (Free Hands-on)', url: 'https://docker-curriculum.com/', type: 'course' },
+  ],
+};
+
+function docsForSkill(skill: string): Resource[] {
+  const key = skill.trim().toLowerCase();
+  return (SKILL_DOCS[key] || []).map((r) => ({ ...r }));
+}
+
+function normalizeResource(res: Resource | string, skill: string): Resource | null {
+  if (typeof res === 'string') {
+    const title = res.trim();
+    if (!title) return null;
+    // If the string itself is a URL, keep it clickable.
+    if (/^https?:\/\//i.test(title)) {
+      return { title, url: title, type: 'link' };
+    }
+    // Try to attach a useful URL from curated docs when titles match loosely.
+    const curated = docsForSkill(skill).find((d) =>
+      d.title.toLowerCase().includes(title.toLowerCase().slice(0, 12)),
+    );
+    return { title, url: curated?.url, type: curated?.type || 'resource' };
+  }
+  const title = (res?.title || '').trim();
+  if (!title) return null;
+  return {
+    title,
+    url: res.url || docsForSkill(skill)[0]?.url,
+    type: res.type || 'resource',
+  };
+}
+
+// Handles both the old backend shape ({topic, timeline, resources: string[]})
+// and the new shape ({skill, priority, timeline, description, resources: []}).
+// Guarantees no blank cards — fills shortlist-focused defaults.
+function normalizeRoadmap(raw: unknown, missingSkills: string[] = []): RoadmapItem[] {
+  const list = Array.isArray(raw) ? (raw as RawRoadmapItem[]) : [];
+  const normalized: RoadmapItem[] = list
+    .filter((it) => it && typeof it === 'object')
+    .map((it, idx) => {
+      const skill = (it.skill || it.topic || '').trim() || missingSkills[idx] || `Skill gap ${idx + 1}`;
+      const rawPriority = (it.priority || '').trim().toLowerCase();
+      const priority =
+        rawPriority === 'high' || rawPriority === 'medium' || rawPriority === 'low'
+          ? rawPriority
+          : idx === 0
+            ? 'high'
+            : idx === 1
+              ? 'medium'
+              : 'low';
+      const timeline = (it.timeline || it.duration || '').trim() || (priority === 'high' ? '3 weeks' : '2 weeks');
+      const description =
+        (it.description || it.detail || '').trim() ||
+        `Build production-level ${skill} skills recruiters screen for — complete the project below and add it to your resume/GitHub to lift shortlist chances.`;
+      const action =
+        (it.action || it.project_idea || '').trim() ||
+        `Ship a small ${skill} project (with README + live demo link) and mention it in your application.`;
+      const rawResources = Array.isArray(it.resources) ? it.resources : [];
+      const resources = rawResources
+        .map((r) => normalizeResource(r, skill))
+        .filter((r): r is Resource => r !== null);
+      const withFallback = resources.length > 0 ? resources : docsForSkill(skill);
+      return { skill, priority, timeline, resources: withFallback, description, action };
+    });
+
+  // Fallback: if AI returned zero roadmap items but we know missing skills,
+  // generate one card per missing skill so the student never sees a blank section.
+  if (normalized.length === 0 && missingSkills.length > 0) {
+    return missingSkills.slice(0, 5).map((skill, idx) => ({
+      skill,
+      priority: idx === 0 ? 'high' : idx === 1 ? 'medium' : 'low',
+      timeline: idx === 0 ? '3 weeks' : '2 weeks',
+      resources: docsForSkill(skill),
+      description: `Recruiters for this role filter on ${skill}. Close this gap first to move from screening to shortlist.`,
+      action: `Ship a small ${skill} project (with README + live demo link) and mention it in your application.`,
+    }));
+  }
+  return normalized;
+}
+
+function normalizeResult(data: unknown): EligibilityResult {
+  const d = (data || {}) as Record<string, unknown>;
+  const matched = Array.isArray(d.matched_skills) ? (d.matched_skills as string[]) : [];
+  const missing = Array.isArray(d.missing_skills) ? (d.missing_skills as string[]) : [];
+  const tips = Array.isArray(d.tips) ? (d.tips as string[]) : [];
+  return {
+    match_percentage: typeof d.match_percentage === 'number' ? d.match_percentage : 0,
+    verdict: typeof d.verdict === 'string' ? d.verdict : 'Analysis ready',
+    verdict_detail: typeof d.verdict_detail === 'string' ? d.verdict_detail : '',
+    matched_skills: matched.filter(Boolean),
+    missing_skills: missing.filter(Boolean),
+    roadmap: normalizeRoadmap(d.roadmap, missing.filter(Boolean)),
+    tips,
+  };
 }
 
 const EligibilityCheckerPage: React.FC = () => {
@@ -53,7 +195,7 @@ const EligibilityCheckerPage: React.FC = () => {
         toast({ title: 'Check failed', description: describeEdgeError(data), variant: 'destructive' });
         return;
       }
-      setResult(data);
+      setResult(normalizeResult(data));
       setHasChecked(true);
     } catch (e: unknown) {
       logger.error(e);
@@ -70,8 +212,9 @@ const EligibilityCheckerPage: React.FC = () => {
   };
 
   const priorityColor = (p: string) => {
-    if (p === 'high') return 'bg-red-100 text-red-800 border-red-200';
-    if (p === 'medium') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    const v = (p || '').toLowerCase();
+    if (v === 'high') return 'bg-red-100 text-red-800 border-red-200';
+    if (v === 'medium') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     return 'bg-green-100 text-green-800 border-green-200';
   };
 
@@ -186,20 +329,31 @@ const EligibilityCheckerPage: React.FC = () => {
               </Card>
             </div>
 
-            {/* Learning Roadmap */}
-            {result.roadmap.length > 0 && (
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-primary" /> Learning Roadmap
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {result.roadmap.map((item, i) => (
+            {/* Learning Roadmap — always rendered when checked so guidance is never blank */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" /> Learning Roadmap
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Prioritized plan to close gaps and boost shortlist chances — highest priority first.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {result.roadmap.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No roadmap generated yet. Re-check to regenerate, or work through the tips below —
+                    each completed project directly improves your shortlist odds.
+                  </p>
+                ) : (
+                  result.roadmap.map((item, i) => (
                     <div key={`res-${i}`} className="border border-border rounded-lg p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold">{item.skill}</h4>
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <h4 className="font-semibold min-w-0 break-words">
+                          <span className="text-muted-foreground font-normal mr-2">Step {i + 1}.</span>
+                          {item.skill}
+                        </h4>
+                        <div className="flex items-center gap-2 shrink-0">
                           <Badge className={priorityColor(item.priority)}>{item.priority} priority</Badge>
                           <Badge variant="outline" className="gap-1">
                             <Clock className="w-3 h-3" /> {item.timeline}
@@ -207,10 +361,19 @@ const EligibilityCheckerPage: React.FC = () => {
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
+                      {item.action && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">
+                            🚀 Shortlist booster — do this
+                          </p>
+                          <p className="text-sm">{item.action}</p>
+                        </div>
+                      )}
                       {item.resources.length > 0 && (
                         <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-muted-foreground">Resources</p>
                           {item.resources.map((res, j) => (
-                            <div key={`step-${j}`} className="flex items-center gap-2 text-sm">
+                            <div key={`step-${i}-${j}`} className="flex items-center gap-2 text-sm">
                               <Badge variant="secondary" className="text-xs shrink-0">{res.type}</Badge>
                               {res.url ? (
                                 <a href={res.url} target="_blank" rel="noopener noreferrer"
@@ -225,10 +388,10 @@ const EligibilityCheckerPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+                  ))
+                )}
+              </CardContent>
+            </Card>
 
             {/* Tips */}
             {result.tips.length > 0 && (

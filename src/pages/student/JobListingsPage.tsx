@@ -119,7 +119,7 @@ const JobListingsPage: React.FC = () => {
         {/* Search & Filter Bar */}
         <div className="mb-6 space-y-3">
           <div className="flex gap-2">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search jobs, skills, companies, locations..."
@@ -244,8 +244,8 @@ const JobListingsPage: React.FC = () => {
               <Card key={job.id} className="glass-card-hover">
                 <CardContent className="pt-6">
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="space-y-2 flex-1">
-                      <h3 className="text-xl font-semibold">{job.title}</h3>
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <h3 className="text-xl font-semibold break-words">{job.title}</h3>
                       <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1"><Building2 className="w-4 h-4" />{job.recruiters?.company_name || 'Company'}</span>
                         <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>

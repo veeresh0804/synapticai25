@@ -134,7 +134,10 @@ public class AIController {
     }
 
     @PostMapping({"/api/parse-resume", "/functions/v1/parse-resume"})
-    public Mono<ResponseEntity<?>> parseResume(@RequestAttribute("userId") UUID userId) {
+    public Mono<ResponseEntity<?>> parseResume(@RequestAttribute(value = "userId", required = false) UUID userId) {
+        if (userId == null) {
+            return Mono.just(ResponseEntity.status(401).body(Map.of("error", "Unauthorized", "code", "unauthorized")));
+        }
         Optional<Student> studentOpt = studentRepository.findByUserId(userId);
         if (studentOpt.isEmpty()) {
             return Mono.just(ResponseEntity.status(404).body(Map.of("error", "Student profile not found")));
@@ -178,7 +181,18 @@ public class AIController {
                     "certifications", Map.of("type", "array", "items", Map.of("type", "string")),
                     "experience_summary", Map.of("type", "string"),
                     "overall_experience_level", Map.of("type", "string"),
-                    "resume_score", Map.of("type", "number")
+                    "resume_score", Map.of("type", "number"),
+                    "projects", Map.of("type", "array", "items", Map.of("type", "string")),
+                    "skill_categories", Map.of(
+                        "type", "object",
+                        "properties", Map.of(
+                            "languages", Map.of("type", "array", "items", Map.of("type", "string")),
+                            "frameworks", Map.of("type", "array", "items", Map.of("type", "string")),
+                            "databases", Map.of("type", "array", "items", Map.of("type", "string")),
+                            "devops", Map.of("type", "array", "items", Map.of("type", "string")),
+                            "other", Map.of("type", "array", "items", Map.of("type", "string"))
+                        )
+                    )
                 ));
                 parameters.put("required", Arrays.asList("technical_skills", "soft_skills", "certifications", "experience_summary", "overall_experience_level", "resume_score"));
                 
@@ -215,7 +229,10 @@ public class AIController {
     }
 
     @PostMapping({"/api/rank-candidates", "/functions/v1/rank-candidates"})
-    public Mono<ResponseEntity<?>> rankCandidates(@RequestAttribute("userId") UUID userId, @RequestBody Map<String, Object> reqBody) {
+    public Mono<ResponseEntity<?>> rankCandidates(@RequestAttribute(value = "userId", required = false) UUID userId, @RequestBody Map<String, Object> reqBody) {
+        if (userId == null) {
+            return Mono.just(ResponseEntity.status(401).body(Map.of("error", "Unauthorized", "code", "unauthorized")));
+        }
         String jobIdStr = (String) reqBody.get("jobId");
         if (jobIdStr == null) {
             jobIdStr = (String) reqBody.get("job_id");
@@ -441,7 +458,10 @@ public class AIController {
     }
 
     @PostMapping({"/api/career-path", "/functions/v1/career-path"})
-    public Mono<ResponseEntity<?>> careerPath(@RequestAttribute("userId") UUID userId, @RequestBody Map<String, Object> reqBody) {
+    public Mono<ResponseEntity<?>> careerPath(@RequestAttribute(value = "userId", required = false) UUID userId, @RequestBody Map<String, Object> reqBody) {
+        if (userId == null) {
+            return Mono.just(ResponseEntity.status(401).body(Map.of("error", "Unauthorized", "code", "unauthorized")));
+        }
         String targetRole = (String) reqBody.get("target_role");
         if (targetRole == null) {
             targetRole = (String) reqBody.get("targetRole");
@@ -522,7 +542,10 @@ public class AIController {
     }
 
     @PostMapping({"/api/eligibility-check", "/functions/v1/eligibility-check"})
-    public Mono<ResponseEntity<?>> eligibilityCheck(@RequestAttribute("userId") UUID userId, @RequestBody Map<String, Object> reqBody) {
+    public Mono<ResponseEntity<?>> eligibilityCheck(@RequestAttribute(value = "userId", required = false) UUID userId, @RequestBody Map<String, Object> reqBody) {
+        if (userId == null) {
+            return Mono.just(ResponseEntity.status(401).body(Map.of("error", "Unauthorized", "code", "unauthorized")));
+        }
         String jobIdStr = (String) reqBody.get("job_id");
         if (jobIdStr == null) {
             jobIdStr = (String) reqBody.get("jobId");
@@ -552,7 +575,7 @@ public class AIController {
             studentSummary.put("resume_skills", p.getResumeSkills());
         });
 
-        String prompt = "You are an expert career advisor AI. Analyze how well this student matches the following job posting and provide a detailed eligibility analysis with a personalized learning roadmap.\n\n" +
+        String prompt = "You are an expert career advisor AI. Analyze how well this student matches the following job posting and provide a detailed eligibility analysis with a personalized learning roadmap focused on maximizing SHORTLIST chances.\n\n" +
             "JOB DETAILS:\n" +
             "- Title: " + job.getTitle() + "\n" +
             "- Description: " + job.getDescription() + "\n" +
@@ -565,9 +588,9 @@ public class AIController {
             "Provide:\n" +
             "1. An overall match percentage (0-100)\n" +
             "2. Skills the student already has that match\n" +
-            "3. Skills the student is missing\n" +
-            "4. A personalized learning roadmap with specific resources and timelines to fill skill gaps\n" +
-            "5. A brief eligibility verdict";
+            "3. Skills the student is missing, ordered by importance for shortlisting\n" +
+            "4. A personalized learning roadmap: one entry per missing skill (max 5), highest priority first. Each entry needs skill, priority (high/medium/low), timeline (e.g. 2 weeks), 1-2 sentence description of why recruiters screen for it, 2 resources WITH real https URLs, and one concrete shortlist-booster project action.\n" +
+            "5. A brief eligibility verdict + 3-5 actionable tips that directly increase shortlist odds.";
 
         Map<String, Object> aiBody = new HashMap<>();
         aiBody.put("model", "google/gemini-2.5-flash");
@@ -593,11 +616,25 @@ public class AIController {
                 "items", Map.of(
                     "type", "object",
                     "properties", Map.of(
-                        "topic", Map.of("type", "string"),
+                        "skill", Map.of("type", "string"),
+                        "priority", Map.of("type", "string"),
                         "timeline", Map.of("type", "string"),
-                        "resources", Map.of("type", "array", "items", Map.of("type", "string"))
+                        "description", Map.of("type", "string"),
+                        "action", Map.of("type", "string"),
+                        "resources", Map.of(
+                            "type", "array",
+                            "items", Map.of(
+                                "type", "object",
+                                "properties", Map.of(
+                                    "title", Map.of("type", "string"),
+                                    "url", Map.of("type", "string"),
+                                    "type", Map.of("type", "string")
+                                ),
+                                "required", Arrays.asList("title", "type")
+                            )
+                        )
                     ),
-                    "required", Arrays.asList("topic", "timeline", "resources")
+                    "required", Arrays.asList("skill", "priority", "timeline", "description", "resources", "action")
                 )
             ),
             "tips", Map.of("type", "array", "items", Map.of("type", "string"))
@@ -617,7 +654,10 @@ public class AIController {
     }
 
     @PostMapping({"/api/extract-profile", "/functions/v1/extract-profile"})
-    public Mono<ResponseEntity<?>> extractProfile(@RequestAttribute("userId") UUID userId) {
+    public Mono<ResponseEntity<?>> extractProfile(@RequestAttribute(value = "userId", required = false) UUID userId) {
+        if (userId == null) {
+            return Mono.just(ResponseEntity.status(401).body(Map.of("error", "Unauthorized", "code", "unauthorized")));
+        }
         Optional<Student> studentOpt = studentRepository.findByUserId(userId);
         if (studentOpt.isEmpty()) return Mono.just(ResponseEntity.status(404).body(Map.of("error", "Student not found")));
         Student s = studentOpt.get();
@@ -645,7 +685,7 @@ public class AIController {
             "overall_score", Map.of("type", "number"),
             "summary", Map.of("type", "string"),
             "technical_skills", Map.of("type", "array", "items", Map.of("type", "string")),
-            "skill_level", Map.of("type", "string", "enum", Arrays.asList("Beginner", "Intermediate", "Advanced")),
+            "skill_level", Map.of("type", "string", "enum", Arrays.asList("beginner", "intermediate", "advanced", "expert")),
             "strengths", Map.of("type", "array", "items", Map.of("type", "string")),
             "areas_to_improve", Map.of("type", "array", "items", Map.of("type", "string")),
             "recommended_roles", Map.of("type", "array", "items", Map.of("type", "string")),
@@ -755,6 +795,42 @@ public class AIController {
             @RequestAttribute(value = "userId", required = false) UUID callerUserId,
             @RequestAttribute(value = "userRole", required = false) String callerRole) {
         if (callerUserId == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        // Frontend contract (matches supabase/functions/portfolio-build): {student_data, profile_data, target_role}
+        if (body.containsKey("student_data") || body.containsKey("target_role") || body.containsKey("targetRole")) {
+            Map<String, Object> studentData = body.get("student_data") instanceof Map
+                    ? (Map<String, Object>) body.get("student_data") : new HashMap<>();
+            Map<String, Object> profileData = body.get("profile_data") instanceof Map
+                    ? (Map<String, Object>) body.get("profile_data") : new HashMap<>();
+            String targetRole = (String) body.get("target_role");
+            if (targetRole == null) targetRole = (String) body.get("targetRole");
+            if (targetRole == null) targetRole = "Software Developer";
+            String name = String.valueOf(studentData.getOrDefault("name", "Student"));
+            Object skillsObj = profileData.getOrDefault("resume_skills",
+                    profileData.getOrDefault("skills", studentData.getOrDefault("skills", Collections.emptyList())));
+            List<String> skills = new ArrayList<>();
+            if (skillsObj instanceof List) {
+                for (Object o : (List<?>) skillsObj) skills.add(String.valueOf(o));
+            } else if (skillsObj instanceof String) {
+                String s = (String) skillsObj;
+                if (s.startsWith("[")) {
+                    try { skills.addAll(mapper.readValue(s, List.class)); }
+                    catch (Exception ignored) { skills.add(s); }
+                } else if (!s.isBlank()) skills.add(s);
+            }
+            if (skills.isEmpty()) skills.add("Problem Solving");
+            Map<String, Object> out = new HashMap<>();
+            out.put("headline", name + " — Aspiring " + targetRole);
+            out.put("bio", name + " is building towards a " + targetRole + " role with hands-on projects and continuous learning.");
+            out.put("skills", skills);
+            out.put("projects", Collections.singletonList(Map.of(
+                    "title", "Portfolio Project for " + targetRole,
+                    "description", "Ship a project demonstrating " + String.join(", ", skills.subList(0, Math.min(3, skills.size()))) + " with README and live demo.",
+                    "highlights", skills.subList(0, Math.min(3, skills.size())))));
+            out.put("achievements", Collections.singletonList("Completed portfolio setup for " + targetRole));
+            out.put("summary", "Portfolio generated from profile data. Add GitHub repos and resume skills for richer output.");
+            out.put("suggested_roles", Collections.singletonList(targetRole));
+            return ResponseEntity.ok(out);
+        }
         String studentIdStr = (String) body.get("studentId");
         if (studentIdStr == null) studentIdStr = (String) body.get("student_id");
         UUID studentId = safeUuid(studentIdStr);
@@ -779,7 +855,16 @@ public class AIController {
                 + "<p>Degree: " + esc(s.getDegree()) + " (" + esc(s.getBranch()) + ")</p>"
                 + "<p>Resume Details: " + esc(pOpt.isPresent() ? pOpt.get().getResumeSkills() : "None") + "</p>"
                 + "</body></html>";
-        return ResponseEntity.ok(Map.of("html", html));
+        Map<String, Object> out = new HashMap<>();
+        out.put("html", html);
+        out.put("headline", s.getName() + " — " + s.getDegree() + " " + s.getBranch());
+        out.put("bio", s.getName() + " from " + s.getInstitution() + " building towards industry roles.");
+        out.put("skills", Collections.singletonList("Problem Solving"));
+        out.put("projects", Collections.emptyList());
+        out.put("achievements", Collections.emptyList());
+        out.put("summary", "Portfolio for " + s.getName());
+        out.put("suggested_roles", Collections.singletonList("Software Developer"));
+        return ResponseEntity.ok(out);
     }
 
     @PostMapping({"/api/project-score", "/functions/v1/project-score"})
@@ -872,6 +957,46 @@ public class AIController {
         return aiService.callAIStream(body);
     }
 
+    @PostMapping({"/api/application-feedback", "/functions/v1/application-feedback"})
+    public ResponseEntity<?> applicationFeedback(
+            @RequestBody Map<String, Object> body,
+            @RequestAttribute(value = "userId", required = false) UUID callerUserId,
+            @RequestAttribute(value = "userRole", required = false) String callerRole) {
+        if (callerUserId == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        Object idsObj = body.get("application_ids");
+        if (idsObj == null) idsObj = body.get("applicationIds");
+        if (!(idsObj instanceof List)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "application_ids array required (1-100)"));
+        }
+        List<?> ids = (List<?>) idsObj;
+        if (ids.isEmpty() || ids.size() > 100) {
+            return ResponseEntity.badRequest().body(Map.of("error", "application_ids must contain 1-100 ids"));
+        }
+        UUID callerRecruiterId = recruiterRepository.findByUserId(callerUserId).map(Recruiter::getId).orElse(null);
+        boolean isAdmin = "admin".equalsIgnoreCase(callerRole);
+        List<Map<String, Object>> feedback = new ArrayList<>();
+        for (Object o : ids) {
+            UUID id = safeUuid(o);
+            if (id == null) continue;
+            Optional<Application> opt = applicationRepository.findById(id);
+            if (opt.isEmpty()) continue;
+            Application app = opt.get();
+            if (!isAdmin) {
+                if (callerRecruiterId == null || !ownsJobSafe(app.getJobId(), callerRecruiterId)) continue;
+            }
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("id", app.getId().toString());
+            entry.put("recruiter_feedback", app.getRecruiterFeedback());
+            feedback.add(entry);
+        }
+        return ResponseEntity.ok(Map.of("feedback", feedback));
+    }
+
+    private boolean ownsJobSafe(UUID jobId, UUID recruiterId) {
+        if (jobId == null || recruiterId == null) return false;
+        return jobRepository.findById(jobId).map(j -> recruiterId.equals(j.getRecruiterId())).orElse(false);
+    }
+
     @PostMapping("/api/seed-users")
     public ResponseEntity<?> seedUsers(@RequestHeader(value = "x-seed-secret", required = false) String providedHeader) {
         if (seedSecret == null || seedSecret.isBlank()) {
@@ -905,3 +1030,4 @@ class ModelBuilderHelper {
         return map;
     }
 }
+

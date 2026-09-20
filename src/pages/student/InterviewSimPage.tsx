@@ -15,7 +15,7 @@ import { supabase, isMockEnvClient } from '@/integrations/supabase/client';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
-const BASE_URL = import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8081';
+const BASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8081';
 const STREAM_URL = isMockEnvClient ? `${BASE_URL}/api/interview-sim` : `${BASE_URL}/functions/v1/interview-sim`;
 
 const InterviewSimPage: React.FC = () => {
@@ -197,11 +197,11 @@ const InterviewSimPage: React.FC = () => {
                           <Bot className="w-4 h-4 text-primary" />
                         </div>
                       )}
-                      <div className={`max-w-[80%] rounded-lg p-3 text-sm ${
+                      <div className={`max-w-[80%] min-w-0 rounded-lg p-3 text-sm break-words ${
                         msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                       }`}>
                         {msg.role === 'assistant' ? (
-                          <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <div className="prose prose-sm max-w-none dark:prose-invert overflow-x-auto">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                           </div>
                         ) : msg.content}
@@ -226,7 +226,7 @@ const InterviewSimPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 [&>*:first-child]:flex-1 [&>*:first-child]:min-w-0">
               <Input
                 value={input}
                 onChange={e => setInput(e.target.value)}

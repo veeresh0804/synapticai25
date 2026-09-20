@@ -85,9 +85,21 @@ const PostJobPage: React.FC = () => {
   };
 
   const handlePost = async () => {
-    if (!formData.title || !formData.description || !formData.location || !formData.jobType) {
+    if (!formData.title.trim() || !formData.description.trim() || !formData.location.trim() || !formData.jobType) {
       toast({ title: 'Please fill in required fields', variant: 'destructive' });
       return;
+    }
+    if (formData.requiredSkills.length === 0) {
+      toast({ title: 'Add at least one required skill', variant: 'destructive' });
+      return;
+    }
+    if (formData.deadline) {
+      const d = new Date(formData.deadline);
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      if (isNaN(d.getTime()) || d < today) {
+        toast({ title: 'Invalid deadline', description: 'Deadline must be a future date.', variant: 'destructive' });
+        return;
+      }
     }
     if (!recruiterProfile?.id) {
       toast({ title: 'Recruiter profile not found', description: 'Please log in again.', variant: 'destructive' });
@@ -157,7 +169,7 @@ const PostJobPage: React.FC = () => {
                   <Input placeholder="e.g. Senior Full Stack Developer" value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Location *</Label>
                     <Input placeholder="e.g. Bangalore" value={formData.location}
@@ -176,7 +188,7 @@ const PostJobPage: React.FC = () => {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Experience Required</Label>
                     <Input placeholder="e.g. 2-5 years" value={formData.experienceRequired}
@@ -308,3 +320,4 @@ const PostJobPage: React.FC = () => {
 };
 
 export default PostJobPage;
+

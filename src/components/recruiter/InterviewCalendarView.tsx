@@ -46,7 +46,9 @@ const InterviewCalendarView: React.FC<Props> = ({ interviews, onCancel }) => {
   const interviewsByDay = useMemo(() => {
     const map = new Map<string, Interview[]>();
     interviews.forEach((iv) => {
-      const key = format(new Date(iv.scheduled_at), 'yyyy-MM-dd');
+      const d = new Date(iv.scheduled_at);
+      if (isNaN(d.getTime())) return;
+      const key = format(d, 'yyyy-MM-dd');
       const existing = map.get(key) || [];
       existing.push(iv);
       map.set(key, existing);
@@ -118,10 +120,10 @@ const InterviewCalendarView: React.FC<Props> = ({ interviews, onCancel }) => {
                             : 'bg-primary/15 text-primary'
                         }`}
                       >
-                        {format(new Date(iv.scheduled_at), 'h:mm a')} {iv.student_name?.split(' ')[0] || ''}
+                        {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'TBD' : format(d, 'h:mm a'); })()} {iv.student_name?.split(' ')[0] || ''}
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-72 p-3" side="right" align="start">
+                    <PopoverContent className="w-72 p-3" side="bottom" align="start">
                       <div className="space-y-2">
                         <div className="flex items-start justify-between">
                           <div>
@@ -139,7 +141,7 @@ const InterviewCalendarView: React.FC<Props> = ({ interviews, onCancel }) => {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {format(new Date(iv.scheduled_at), 'h:mm a')} · {iv.duration_minutes}min
+                            {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Time TBD' : format(d, 'h:mm a'); })()} · {iv.duration_minutes}min
                           </span>
                         </div>
                         {iv.meeting_link && (

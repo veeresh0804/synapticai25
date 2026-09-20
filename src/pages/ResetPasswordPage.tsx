@@ -47,8 +47,12 @@ const ResetPasswordPage: React.FC = () => {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
       return;
     }
-    if (password.length < 8) {
-      toast({ title: 'Password too short', description: 'Password must be at least 8 characters.', variant: 'destructive' });
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      toast({ title: 'Weak password', description: 'Use 8+ characters with letters and numbers (avoid common passwords like password1).', variant: 'destructive' });
+      return;
+    }
+    if (['password1', '12345678', 'password123'].includes(password.toLowerCase())) {
+      toast({ title: 'Too common', description: 'Please choose a less predictable password.', variant: 'destructive' });
       return;
     }
     setIsLoading(true);
@@ -57,7 +61,7 @@ const ResetPasswordPage: React.FC = () => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
-      navigate('/');
+      navigate('/student/login');
     }
     setIsLoading(false);
   };

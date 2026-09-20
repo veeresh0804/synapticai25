@@ -28,9 +28,18 @@ const AdminLogin: React.FC = () => {
       return;
     }
 
-    // Check admin role
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+    // Check admin role (retry briefly — session may not be established yet)
+    let user = (await supabase.auth.getUser()).data.user;
+    for (let i = 0; i < 4 && !user; i++) {
+      await new Promise((r) => setTimeout(r, 300));
+      user = (await supabase.auth.getUser()).data.user;
+    }
+    if (!user) {
+      toast({ title: 'Session not ready', description: 'Please try again.', variant: 'destructive' });
+      setIsLoading(false);
+      return;
+    }
+    {
       const { data: roles } = await supabase
         .from('user_roles').select('role').eq('user_id', user.id);
       const isAdmin = (roles ?? []).some((r) => r.role === 'admin');
@@ -46,7 +55,7 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+    <div className="min-h-screen pt-20 pb-12 flex items-center justify-center px-4">
       <Card className="glass-card w-full max-w-md">
         <CardHeader className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
@@ -81,3 +90,4 @@ const AdminLogin: React.FC = () => {
 };
 
 export default AdminLogin;
+

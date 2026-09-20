@@ -73,7 +73,8 @@ const CandidateRankingPage: React.FC = () => {
   const [expandedResume, setExpandedResume] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!jobId || !recruiterProfile?.id) return;
+    if (!jobId || !recruiterProfile?.id) { setIsLoading(false); return; }
+    setIsLoading(true);
     const fetchJob = async () => {
       const { data } = await supabase
         .from('jobs')
@@ -114,12 +115,19 @@ const CandidateRankingPage: React.FC = () => {
           statusMap = Object.fromEntries(apps.map((a) => [a.id, a.status]));
         }
       }
-      const enriched = (data.candidates || []).map((c: Record<string, unknown>) => ({
-        ...c,
+      const strArr = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => String(x || '').trim()).filter(Boolean) : []);
+      const enriched = (Array.isArray(data.candidates) ? data.candidates : []).map((c: Record<string, unknown>) => ({
+        ...(c as object),
+        application_id: String((c as Record<string, unknown>).application_id || ''),
+        name: String((c as Record<string, unknown>).name || 'Candidate'),
+        score: Number((c as Record<string, unknown>).score) || 0,
+        rank: Number((c as Record<string, unknown>).rank) || 0,
+        strengths: strArr((c as Record<string, unknown>).strengths),
+        gaps: strArr((c as Record<string, unknown>).gaps),
         status: statusMap[c.application_id as string] || 'pending',
       }));
       setCandidates(enriched);
-      setSummary(data.summary || '');
+      setSummary(String(data.summary || data.message || ''));
       setHasRanked(true);
       if (enriched.length === 0) {
         toast({ title: 'No applicants to rank yet' });
@@ -174,7 +182,9 @@ const CandidateRankingPage: React.FC = () => {
       ...(candidate.resume_skills.skill_categories?.devops || []),
       ...(candidate.resume_skills.skill_categories?.other || []),
     ].map(s => s.toLowerCase().trim());
-    const matched = requiredLower.filter(rs => candidateSkills.some(cs => cs.includes(rs) || rs.includes(cs)));
+    const matched = requiredLower.filter(rs =>
+      candidateSkills.some(cs => cs === rs || (cs.length > 2 && rs.length > 2 && (cs.includes(rs) || rs.includes(cs))))
+    );
     return { matched: matched.length, total: requiredLower.length, pct: Math.round((matched.length / requiredLower.length) * 100) };
   };
 
@@ -277,8 +287,8 @@ const CandidateRankingPage: React.FC = () => {
 
         {hasRanked && candidates.length > 0 && (
           <div className="space-y-4">
-            {candidates
-              .sort((a, b) => a.rank - b.rank)
+            {[...candidates]
+              .sort((a, b) => (Number(a.rank) || 0) - (Number(b.rank) || 0))
               .map((c) => (
                 <Card key={c.application_id} className="glass-card-hover">
                   <CardContent className="pt-6">
