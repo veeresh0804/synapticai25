@@ -86,3 +86,30 @@ export function formatEdgeErrorDescription(err: ParsedEdgeError): string {
 export function describeEdgeError(input: unknown): string {
   return formatEdgeErrorDescription(parseEdgeError(input));
 }
+
+/**
+ * Async variant that also unwraps supabase-js FunctionsHttpError bodies.
+ * invoke() puts the server envelope in `error.context` (a Response) while
+ * `error.message` stays the generic "Edge Function returned a non-2xx...".
+ * Always prefer this in catch blocks around functions.invoke.
+ */
+export async function describeEdgeErrorAsync(input: unknown): Promise<string> {
+  try {
+    const rec = input as Record<string, unknown> | null;
+    const ctx = rec && typeof rec === "object" ? (rec as { context?: unknown }).context : undefined;
+    if (ctx instanceof Response) {
+      try {
+        const body = await (ctx as Response).clone().json();
+        const parsed = parseEdgeError(body);
+        if (parsed.message && parsed.message !== "Something went wrong. Please try again.") {
+          return formatEdgeErrorDescription(parsed);
+        }
+      } catch {
+        /* fall through to sync parse */
+      }
+    }
+  } catch {
+    /* fall through to sync parse */
+  }
+  return describeEdgeError(input);
+}

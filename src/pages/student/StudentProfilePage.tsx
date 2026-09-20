@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import ResumeSkillsDisplay from '@/components/student/ResumeSkillsDisplay';
-import { describeEdgeError } from '@/lib/edgeError';
+import { describeEdgeError, describeEdgeErrorAsync } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
 
 interface ProfileAnalysis {
@@ -122,7 +122,7 @@ const StudentProfilePage: React.FC = () => {
       toast({ title: 'Resume parsed!', description: 'AI has extracted skills from your resume.' });
     } catch (e: unknown) {
       logger.error(e);
-      toast({ title: 'Error', description: describeEdgeError(e), variant: 'destructive' });
+      toast({ title: 'Error', description: await describeEdgeErrorAsync(e), variant: 'destructive' });
     } finally {
       setIsParsing(false);
     }

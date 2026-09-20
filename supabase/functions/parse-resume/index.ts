@@ -17,14 +17,20 @@ export default {
       .select("id, name, resume_url")
       .eq("user_id", userId)
       .maybeSingle();
-    if (!student) throw new Error("Student profile not found");
-    if (!student.resume_url) throw new Error("No resume uploaded. Please upload your resume first.");
+    if (!student) {
+      return errorResponse({ fn: "parse-resume", code: "not_found", message: "Student profile not found. Complete your profile first.", requestId });
+    }
+    if (!student.resume_url) {
+      return errorResponse({ fn: "parse-resume", code: "bad_request", message: "No resume uploaded. Please upload your resume first.", requestId });
+    }
 
     // Download resume from storage
     const { data: fileData, error: downloadError } = await adminClient.storage
       .from("resumes")
       .download(student.resume_url);
-    if (downloadError || !fileData) throw new Error("Failed to download resume: " + (downloadError?.message || "Unknown error"));
+    if (downloadError || !fileData) {
+      return errorResponse({ fn: "parse-resume", code: "upstream_error", message: "Could not read the uploaded resume file. Please re-upload it as a PDF.", requestId, cause: downloadError });
+    }
 
     // Convert file to base64 for AI processing (chunked to avoid stack overflow)
     const arrayBuffer = await fileData.arrayBuffer();
@@ -153,23 +159,30 @@ export default {
       if (status === 402) {
         return errorResponse({ fn: "parse-resume", code: "payment_required", message: "AI credits exhausted.", requestId });
       }
-      throw new Error("AI resume parsing failed");
+      throw new Error(`AI gateway error: ${status}`);
     }
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let resumeSkills;
     if (toolCall?.function?.arguments) {
-      resumeSkills = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
+      try {
+        resumeSkills = parseAiJson(toolCall.function.arguments);
+      } catch (pe) {
+        return errorResponse({ fn: "parse-resume", code: "upstream_error", message: "AI returned an unreadable analysis. Please try again.", requestId, cause: pe });
+      }
     } else {
-      throw new Error("AI did not return structured resume analysis");
+      console.error("AI returned no tool call:", JSON.stringify(aiData).slice(0, 500));
+      return errorResponse({ fn: "parse-resume", code: "upstream_error", message: "AI could not read this resume. Try a text-based PDF.", requestId });
     }
 
-    // Store extracted skills in student_profiles
-    await adminClient
+    // Store extracted skills in student_profiles (upsert: row may not exist yet)
+    const { error: saveError } = await adminClient
       .from("student_profiles")
-      .update({ resume_skills: resumeSkills })
-      .eq("student_id", student.id);
+      .upsert({ student_id: student.id, resume_skills: resumeSkills }, { onConflict: "student_id" });
+    if (saveError) {
+      console.error("Failed to save resume_skills:", saveError.message);
+    }
 
     return new Response(
       JSON.stringify({ resume_skills: resumeSkills }),
