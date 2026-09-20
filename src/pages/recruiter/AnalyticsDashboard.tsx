@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, Users, CheckCircle, XCircle, Clock, Briefcase, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import PageShell from '@/components/shared/PageShell';
 
 interface JobAnalytics {
   id: string;
@@ -91,7 +92,7 @@ const AnalyticsDashboard: React.FC = () => {
   ].filter(d => d.value > 0);
 
   const barData = jobAnalytics.filter(j => j.total > 0).slice(0, 10).map(j => ({
-    name: j.title.length > 20 ? j.title.substring(0, 20) + '…' : j.title,
+    name: j.title.length > 20 ? j.title.substring(0, 20) + 'â€¦' : j.title,
     Applicants: j.total,
     Shortlisted: j.shortlisted,
     Rejected: j.rejected,
@@ -99,14 +100,14 @@ const AnalyticsDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+      <PageShell className="flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8">
         <Button variant="ghost" className="mb-6" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -125,7 +126,7 @@ const AnalyticsDashboard: React.FC = () => {
             { label: 'Rejected', value: totals.rejected, icon: XCircle, color: 'text-destructive' },
             { label: 'Conversion Rate', value: `${overallConversion}%`, icon: TrendingUp, color: 'text-primary' },
           ].map((stat) => (
-            <Card key={stat.label} className="glass-card">
+            <Card key={stat.label} className="surface-card">
               <CardContent className="pt-6 text-center">
                 <stat.icon className={`w-6 h-6 mx-auto mb-2 ${stat.color}`} />
                 <p className="text-2xl font-bold">{stat.value}</p>
@@ -138,7 +139,7 @@ const AnalyticsDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Bar Chart */}
           {barData.length > 0 && (
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardHeader>
                 <CardTitle className="text-base">Applicants by Job</CardTitle>
               </CardHeader>
@@ -160,7 +161,7 @@ const AnalyticsDashboard: React.FC = () => {
 
           {/* Pie Chart */}
           {pieData.length > 0 && (
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardHeader>
                 <CardTitle className="text-base">Application Status Breakdown</CardTitle>
               </CardHeader>
@@ -181,7 +182,7 @@ const AnalyticsDashboard: React.FC = () => {
         </div>
 
         {/* Per-Job Breakdown */}
-        <Card className="glass-card">
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Briefcase className="w-5 h-5 text-primary" /> Per-Job Funnel

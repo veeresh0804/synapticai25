@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { describeEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
 
 const PostJobPage: React.FC = () => {
   const navigate = useNavigate();
@@ -131,14 +132,16 @@ const PostJobPage: React.FC = () => {
     setIsPosting(false);
   };
 
-  const steps = [
+  import PageShell from '@/components/shared/PageShell';
+
+const steps = [
     { num: 1, label: 'Job Details', icon: Briefcase },
     { num: 2, label: 'Description', icon: FileText },
     { num: 3, label: 'Skills & Post', icon: Target },
   ];
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <Button variant="ghost" className="mb-6" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -159,7 +162,7 @@ const PostJobPage: React.FC = () => {
           ))}
         </div>
 
-        <Card className="glass-card">
+        <Card className="surface-card">
           {currentStep === 1 && (
             <>
               <CardHeader><CardTitle>Job Details</CardTitle></CardHeader>
@@ -315,7 +318,7 @@ const PostJobPage: React.FC = () => {
           )}
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

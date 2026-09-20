@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Loader2, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -70,7 +70,7 @@ const ResetPasswordPage: React.FC = () => {
     return (
       <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
         <div className="container mx-auto px-4 max-w-md text-center">
-          <Card className="glass-card animate-fade-in">
+          <Card className="surface-card animate-fade-in">
             <CardHeader>
               <CardTitle className="text-2xl">Invalid Link</CardTitle>
               <CardDescription>This password reset link is invalid or has expired. Please request a new one.</CardDescription>
@@ -92,7 +92,7 @@ const ResetPasswordPage: React.FC = () => {
         path="/reset-password"
       />
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="glass-card animate-fade-in">
+        <Card className="surface-card animate-fade-in">
           <CardHeader className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <KeyRound className="w-8 h-8 text-primary" />
@@ -107,7 +107,7 @@ const ResetPasswordPage: React.FC = () => {
                 <Label className="flex items-center gap-2"><Lock className="w-4 h-4" /> New Password</Label>
                 <div className="relative">
                   <Input type={showPassword ? 'text' : 'password'} required value={password}
-                    onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="pr-10" />
+                    onChange={e => setPassword(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" className="pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-pressed={showPassword}
@@ -119,7 +119,7 @@ const ResetPasswordPage: React.FC = () => {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2"><Lock className="w-4 h-4" /> Confirm Password</Label>
                 <Input type="password" required value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" />
+                  onChange={e => setConfirmPassword(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
               </div>
               <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Updating...</> : 'Update Password'}

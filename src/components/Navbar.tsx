@@ -79,7 +79,7 @@ const Navbar: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+          <div className="flex h-[72px] items-center justify-between">
           <Link to={getHomePath()} className="flex items-center gap-2 group">
             <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-primary/70 group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-300">
               <BrainCircuit className="w-5 h-5 text-primary-foreground" />
@@ -105,7 +105,7 @@ const Navbar: React.FC = () => {
                 {navLinks.map((link) => (
                   <Link key={link.path} to={link.path}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                      ${isActive(link.path) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}>
+                      ${isActive(link.path) ? 'bg-primary/10 text-primary-dark font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}>
                     {link.label}
                   </Link>
                 ))}
@@ -113,11 +113,11 @@ const Navbar: React.FC = () => {
                 {userType === 'student' && <NotificationBell />}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="gap-2 ml-2" aria-label={`Account menu for ${getUserName()}`}>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground font-semibold bg-primary`}>
+                    <Button variant="ghost" className="max-w-[200px] gap-2 ml-2" aria-label={`Account menu for ${getUserName()}`}>
+                      <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-primary-foreground font-semibold bg-primary`}>
                         {getUserName().charAt(0)}
                       </div>
-                      <span className="hidden lg:inline">{getUserName()}</span>
+                      <span className="hidden lg:inline truncate">{getUserName()}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -159,7 +159,7 @@ const Navbar: React.FC = () => {
                   {navLinks.map((link) => (
                     <Link key={link.path} to={link.path} onClick={() => setIsMobileMenuOpen(false)}
                       className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200
-                        ${isActive(link.path) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}>
+                        ${isActive(link.path) ? 'bg-primary/10 text-primary-dark font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}>
                       {link.label}
                     </Link>
                   ))}

@@ -69,7 +69,7 @@ const StudentLogin: React.FC = () => {
         path="/student/login"
       />
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="glass-card animate-fade-in">
+        <Card className="surface-card animate-fade-in">
           <CardHeader className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-secondary/20 to-secondary/10 flex items-center justify-center">
               <GraduationCap className="w-8 h-8 text-secondary" />

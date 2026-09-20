@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Loader2, Bot, User, RotateCcw, Sparkles, Briefcase, Users, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
 import { describeEdgeError, parseEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -144,7 +145,7 @@ const RecruiterAgentPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <Link to="/recruiter/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" /> Back
@@ -167,7 +168,7 @@ const RecruiterAgentPage: React.FC = () => {
 
         {messages.length === 0 ? (
           <div className="space-y-6">
-            <Card className="glass-card bg-gradient-to-br from-primary/5 to-primary/10">
+            <Card className="surface-card bg-gradient-to-br from-primary/5 to-primary/10">
               <CardContent className="pt-8 pb-8 text-center">
                 <Bot className="w-16 h-16 text-primary mx-auto mb-4" />
                 <h2 className="text-xl font-semibold mb-2">How can I help you today?</h2>
@@ -194,7 +195,7 @@ const RecruiterAgentPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <Card className="glass-card mb-4">
+          <Card className="surface-card mb-4">
             <CardContent className="pt-4 pb-4 max-h-[500px] overflow-y-auto">
               <div className="space-y-4">
                 {messages.map((msg, i) => (
@@ -247,7 +248,7 @@ const RecruiterAgentPage: React.FC = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

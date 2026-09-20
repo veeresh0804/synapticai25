@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { describeEdgeErrorAsync } from '@/lib/edgeError';
+import PageShell from '@/components/shared/PageShell';
 
 interface PipelineCandidate {
   application_id: string;
@@ -163,11 +164,11 @@ const RecruiterCRMPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen pt-20 pb-12 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    return <PageShell className="flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></PageShell>;
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
@@ -193,7 +194,7 @@ const RecruiterCRMPage: React.FC = () => {
         {/* Summary */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
           {stagesWithCandidates.map(s => (
-            <Card key={s.stage} className="glass-card">
+            <Card key={s.stage} className="surface-card">
               <CardContent className="py-3 text-center">
                 <p className="text-xl font-bold">{s.candidates.length}</p>
                 <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -233,14 +234,14 @@ const RecruiterCRMPage: React.FC = () => {
               ))}
             </div>
             {filteredCandidates.length === 0 && (
-              <Card className="glass-card mt-4"><CardContent className="py-8 text-center text-muted-foreground">No candidates in pipeline.</CardContent></Card>
+              <Card className="surface-card mt-4"><CardContent className="py-8 text-center text-muted-foreground">No candidates in pipeline.</CardContent></Card>
             )}
           </div>
 
           {/* Detail Panel */}
           <div>
             {selectedCandidate ? (
-              <Card className="glass-card sticky top-24">
+              <Card className="surface-card sticky top-24">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">{selectedCandidate.student_name}</CardTitle>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -271,7 +272,7 @@ const RecruiterCRMPage: React.FC = () => {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="py-12 text-center">
                   <Users className="w-10 h-10 mx-auto text-muted-foreground/50 mb-3" />
                   <p className="text-sm text-muted-foreground">Select a candidate to view details</p>
@@ -281,7 +282,7 @@ const RecruiterCRMPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

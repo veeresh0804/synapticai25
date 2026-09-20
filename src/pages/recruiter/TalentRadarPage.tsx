@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import PageShell from '@/components/shared/PageShell';
 
 interface SkillTrend {
   skill: string;
@@ -95,11 +96,11 @@ const TalentRadarPage: React.FC = () => {
   }, [recruiterProfile?.id]);
 
   if (isLoading) {
-    return <div className="min-h-screen pt-20 pb-12 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+    return <PageShell className="flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></PageShell>;
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
@@ -111,28 +112,28 @@ const TalentRadarPage: React.FC = () => {
 
         {/* Overview Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center">
               <Users className="w-6 h-6 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{totalStudents}</p>
               <p className="text-xs text-muted-foreground">Total Students</p>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center">
               <Zap className="w-6 h-6 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{topSkills.length}</p>
               <p className="text-xs text-muted-foreground">Unique Skills</p>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center">
               <BarChart3 className="w-6 h-6 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{avgScore}</p>
               <p className="text-xs text-muted-foreground">Avg AI Score</p>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center">
               <TrendingUp className="w-6 h-6 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{institutions.length}</p>
@@ -143,7 +144,7 @@ const TalentRadarPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Top Skills */}
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" /> Top Skills on Platform
@@ -165,7 +166,7 @@ const TalentRadarPage: React.FC = () => {
           </Card>
 
           {/* Graduation Year */}
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader>
               <CardTitle className="text-base">Students by Graduation Year</CardTitle>
             </CardHeader>
@@ -187,7 +188,7 @@ const TalentRadarPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Institutions */}
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader>
               <CardTitle className="text-base">Top Institutions</CardTitle>
             </CardHeader>
@@ -205,7 +206,7 @@ const TalentRadarPage: React.FC = () => {
           </Card>
 
           {/* Degree Distribution */}
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader>
               <CardTitle className="text-base">Degree Distribution</CardTitle>
             </CardHeader>
@@ -224,7 +225,7 @@ const TalentRadarPage: React.FC = () => {
           </Card>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

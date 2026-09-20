@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 import { Shield, Users, Briefcase, FileText, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import PageShell from '@/components/shared/PageShell';
 
 type Student     = Database['public']['Tables']['students']['Row'];
 type Recruiter   = Database['public']['Tables']['recruiters']['Row'];
@@ -67,7 +68,7 @@ const AdminDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+      <PageShell className="flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -93,7 +94,7 @@ const AdminDashboard: React.FC = () => {
   const trendData = Object.entries(jobsByMonth).map(([month, count]) => ({ month, jobs: count }));
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold flex items-center gap-3 mb-8">
           <Shield className="w-8 h-8 text-primary" /> Admin Dashboard
@@ -108,7 +109,7 @@ const AdminDashboard: React.FC = () => {
             { label: 'Applications', value: stats.applications, icon: FileText },
             { label: 'Interviews', value: stats.interviews, icon: Calendar },
           ].map(s => (
-            <Card key={s.label} className="glass-card">
+            <Card key={s.label} className="surface-card">
               <CardContent className="pt-6 text-center">
                 <s.icon className="w-6 h-6 mx-auto mb-2 text-primary" />
                 <p className="text-2xl font-bold">{s.value}</p>
@@ -120,7 +121,7 @@ const AdminDashboard: React.FC = () => {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader><CardTitle className="text-base">Application Status</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
@@ -136,7 +137,7 @@ const AdminDashboard: React.FC = () => {
           </Card>
 
           {trendData.length > 0 && (
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardHeader><CardTitle className="text-base">Jobs Posted Over Time</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -162,7 +163,7 @@ const AdminDashboard: React.FC = () => {
           </TabsList>
 
           <TabsContent value="students">
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardContent className="pt-6">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -197,7 +198,7 @@ const AdminDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="recruiters">
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardContent className="pt-6">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -215,7 +216,7 @@ const AdminDashboard: React.FC = () => {
                           <td className="py-3 px-2 font-medium">{r.recruiter_name}</td>
                           <td className="py-3 px-2">{r.company_name}</td>
                           <td className="py-3 px-2 text-muted-foreground">{r.email}</td>
-                          <td className="py-3 px-2">{r.designation || '—'}</td>
+                          <td className="py-3 px-2">{r.designation || 'â€”'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -226,7 +227,7 @@ const AdminDashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="jobs">
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardContent className="pt-6">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -259,7 +260,7 @@ const AdminDashboard: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Loader2, ArrowLeft, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ const ForgotPasswordPage: React.FC = () => {
         path="/forgot-password"
       />
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="glass-card animate-fade-in">
+        <Card className="surface-card animate-fade-in">
           <CardHeader className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <KeyRound className="w-8 h-8 text-primary" />

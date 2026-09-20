@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Building2, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
 import Seo from '@/components/Seo';
+import PageShell from '@/components/shared/PageShell';
 
 const RecruiterLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const RecruiterLogin: React.FC = () => {
       toast({ title: 'Login failed', description: error, variant: 'destructive' });
       setIsLoading(false);
     }
-    // Do NOT navigate here — let the useEffect below handle it
+    // Do NOT navigate here â€” let the useEffect below handle it
   };
 
   const handleGoogleSignIn = async () => {
@@ -62,14 +63,14 @@ const RecruiterLogin: React.FC = () => {
   }, [authLoading, isAuthenticated, userType, user, navigate]);
 
   return (
-    <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+    <PageShell className="flex items-center justify-center">
       <Seo
         title="Recruiter Login | SynapticAI"
         description="Sign in to SynapticAI's recruiter portal to manage jobs, rank candidates, and run AI-powered hiring workflows."
         path="/recruiter/login"
       />
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="glass-card animate-fade-in">
+        <Card className="surface-card animate-fade-in">
           <CardHeader className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <Building2 className="w-8 h-8 text-primary" />
@@ -129,7 +130,7 @@ const RecruiterLogin: React.FC = () => {
                 <Label className="flex items-center gap-2"><Lock className="w-4 h-4" /> Password</Label>
                 <div className="relative">
                   <Input type={showPassword ? 'text' : 'password'} required value={password}
-                    onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="pr-10" />
+                    onChange={e => setPassword(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" className="pr-10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-pressed={showPassword}
@@ -149,11 +150,11 @@ const RecruiterLogin: React.FC = () => {
             <p className="text-sm text-muted-foreground text-center">
               Don't have an account? <Link to="/recruiter/register" className="text-primary hover:underline">Register</Link>
             </p>
-            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground text-center">← Back to Home</Link>
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground text-center">â† Back to Home</Link>
           </CardFooter>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

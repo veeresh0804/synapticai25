@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -48,6 +49,9 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
 const queryClient = new QueryClient();
+
+// DEV-only visual reference gallery (code-split; never registered in production).
+const DesignReferencePage = React.lazy(() => import("./pages/DesignReferencePage"));
 
 const ProtectedRoute = ({
   children,
@@ -118,6 +122,18 @@ const App = () => (
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/dashboard" element={<ProtectedRoute requiredType="admin"><AdminDashboard /></ProtectedRoute>} />
+
+                {/* DEV-only design reference gallery */}
+                {import.meta.env.DEV && (
+                  <Route
+                    path="/design-reference"
+                    element={
+                      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><span>Loading…</span></div>}>
+                        <DesignReferencePage />
+                      </Suspense>
+                    }
+                  />
+                )}
 
                 {/* Password Reset */}
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 import { ArrowLeft, ShieldAlert, AlertTriangle, CheckCircle2, XCircle, Loader2, FileText, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { describeEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
 
 type Job = Pick<Database['public']['Tables']['jobs']['Row'], 'id' | 'title' | 'description' | 'required_skills'>;
 
@@ -71,7 +72,7 @@ const BiasDetectorPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Link to="/recruiter/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" /> Back
@@ -83,7 +84,7 @@ const BiasDetectorPage: React.FC = () => {
         </div>
         <p className="text-muted-foreground mb-8">Analyze your job descriptions for unconscious bias and get inclusive alternatives.</p>
 
-        <Card className="glass-card mb-8">
+        <Card className="surface-card mb-8">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
               <div className="flex-1">
@@ -109,7 +110,7 @@ const BiasDetectorPage: React.FC = () => {
           <div className="space-y-6 animate-fade-in">
             {/* Score Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="pt-6 text-center">
                   <p className={`text-4xl font-bold ${result.bias_score > 50 ? 'text-destructive' : result.bias_score > 25 ? 'text-warning' : 'text-green-600'}`}>
                     {result.bias_score}%
@@ -118,7 +119,7 @@ const BiasDetectorPage: React.FC = () => {
                   <p className="text-xs text-muted-foreground">(lower is better)</p>
                 </CardContent>
               </Card>
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="pt-6 text-center">
                   <p className={`text-4xl font-bold ${ratingColor(result.overall_rating)}`}>
                     {result.inclusive_score}%
@@ -126,7 +127,7 @@ const BiasDetectorPage: React.FC = () => {
                   <p className="text-sm text-muted-foreground mt-1">Inclusivity Score</p>
                 </CardContent>
               </Card>
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="pt-6 text-center">
                   <Badge className={`text-lg px-4 py-1 capitalize ${ratingColor(result.overall_rating)}`}>
                     {result.overall_rating?.replace('_', ' ')}
@@ -137,7 +138,7 @@ const BiasDetectorPage: React.FC = () => {
             </div>
 
             {/* Summary */}
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardContent className="pt-6">
                 <p className="text-muted-foreground">{result.summary}</p>
               </CardContent>
@@ -145,7 +146,7 @@ const BiasDetectorPage: React.FC = () => {
 
             {/* Findings */}
             {result.findings?.length > 0 && (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-warning" /> Bias Findings ({result.findings.length})
@@ -176,7 +177,7 @@ const BiasDetectorPage: React.FC = () => {
 
             {/* Rewritten Sections */}
             {result.rewritten_sections?.length > 0 && (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <RefreshCw className="w-5 h-5 text-primary" /> Suggested Rewrites
@@ -204,7 +205,7 @@ const BiasDetectorPage: React.FC = () => {
         )}
 
         {jobs.length === 0 && !isAnalyzing && (
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center py-12">
               <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">No job postings found. Post a job first to analyze it for bias.</p>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   BrainCircuit, Users, GraduationCap, Code2, Github, Linkedin,
@@ -11,7 +11,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen">
       <Seo
-        title="SynapticAI — Evidence-Based AI Hiring Platform"
+        title="SynapticAI â€” Evidence-Based AI Hiring Platform"
         description="Rank candidates with verified GitHub, LeetCode, and LinkedIn signals. Explainable AI ranking, bias detection, and smart interview scheduling."
         path="/"
       />
@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="glass-card-hover p-8 text-center space-y-4">
+            <div className="surface-card-hover p-8 text-center space-y-4">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                 <BarChart3 className="w-8 h-8 text-primary" />
               </div>
@@ -95,7 +95,7 @@ const HomePage: React.FC = () => {
               </p>
             </div>
 
-            <div className="glass-card-hover p-8 text-center space-y-4">
+            <div className="surface-card-hover p-8 text-center space-y-4">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                 <BrainCircuit className="w-8 h-8 text-primary" />
               </div>
@@ -105,7 +105,7 @@ const HomePage: React.FC = () => {
               </p>
             </div>
 
-            <div className="glass-card-hover p-8 text-center space-y-4">
+            <div className="surface-card-hover p-8 text-center space-y-4">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
                 <Shield className="w-8 h-8 text-primary" />
               </div>
@@ -122,7 +122,7 @@ const HomePage: React.FC = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="glass-card p-8 border-l-4 border-destructive space-y-6">
+            <div className="surface-card p-8 border-l-4 border-destructive space-y-6">
               <div className="flex items-center gap-3">
                 <XCircle className="w-8 h-8 text-destructive" />
                 <h3 className="text-2xl font-bold">The Problem</h3>
@@ -143,7 +143,7 @@ const HomePage: React.FC = () => {
               </ul>
             </div>
 
-            <div className="glass-card p-8 border-l-4 border-success space-y-6">
+            <div className="surface-card p-8 border-l-4 border-success space-y-6">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-8 h-8 text-success" />
                 <h3 className="text-2xl font-bold">Our Solution</h3>
@@ -198,7 +198,7 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <p className="flex items-center justify-center gap-2">
             <BrainCircuit className="w-5 h-5 text-primary" />
-            <span>SynapticAI — AI-Powered Career Intelligence Platform</span>
+            <span>SynapticAI â€” AI-Powered Career Intelligence Platform</span>
           </p>
         </div>
       </footer>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy, Star, AlertTriangle, ExternalLink, Loader2, Sparkles, GraduationCap, Github, Code2, CheckCircle, XCircle, UserCheck, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { describeEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
 
 interface ResumeSkills {
   technical_skills?: string[];
@@ -224,14 +225,14 @@ const CandidateRankingPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+      <PageShell className="flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" className="mb-6" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -244,7 +245,7 @@ const CandidateRankingPage: React.FC = () => {
               AI Candidate Ranking
             </h1>
             <p className="text-muted-foreground mt-1">
-              {job?.title} — {job?.applications_count || 0} applicant(s)
+              {job?.title} â€” {job?.applications_count || 0} applicant(s)
             </p>
           </div>
           <Button className="btn-primary gap-2" onClick={runRanking} disabled={isRanking}>
@@ -259,7 +260,7 @@ const CandidateRankingPage: React.FC = () => {
         </div>
 
         {summary && (
-          <Card className="glass-card mb-6">
+          <Card className="surface-card mb-6">
             <CardContent className="pt-6">
               <p className="text-sm leading-relaxed">{summary}</p>
             </CardContent>
@@ -267,7 +268,7 @@ const CandidateRankingPage: React.FC = () => {
         )}
 
         {!hasRanked && !isRanking && (
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center py-16">
               <Sparkles className="w-16 h-16 text-primary/40 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">Ready to Rank</h3>
@@ -279,7 +280,7 @@ const CandidateRankingPage: React.FC = () => {
         )}
 
         {isRanking && (
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center py-16">
               <Loader2 className="w-16 h-16 text-primary animate-spin mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">Analyzing Candidates...</h3>
@@ -293,7 +294,7 @@ const CandidateRankingPage: React.FC = () => {
             {[...candidates]
               .sort((a, b) => (Number(a.rank) || 0) - (Number(b.rank) || 0))
               .map((c) => (
-                <Card key={c.application_id} className="glass-card-hover">
+                <Card key={c.application_id} className="surface-card-hover">
                   <CardContent className="pt-6">
                     <div className="flex flex-col md:flex-row gap-4">
                       {/* Left: Rank & Score */}
@@ -347,7 +348,7 @@ const CandidateRankingPage: React.FC = () => {
 
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <GraduationCap className="w-4 h-4" />
-                          <span>{c.degree} in {c.branch} — {c.institution} ({c.graduation_year})</span>
+                          <span>{c.degree} in {c.branch} â€” {c.institution} ({c.graduation_year})</span>
                         </div>
 
                         {c.strengths.length > 0 && (
@@ -471,7 +472,7 @@ const CandidateRankingPage: React.FC = () => {
                                       {c.resume_skills.projects.slice(0, 3).map((p, i) => (
                                         <div key={`proj-${i}`} className="text-xs">
                                           <span className="font-medium">{p.name}</span>
-                                          <span className="text-muted-foreground"> — {p.description}</span>
+                                          <span className="text-muted-foreground"> â€” {p.description}</span>
                                           <div className="flex flex-wrap gap-1 mt-1">
                                             {(p.technologies ?? []).map((t, j) => (
                                               <Badge key={`pt-${t}-${j}`} variant="secondary" className="text-xs py-0">{t}</Badge>
@@ -537,7 +538,7 @@ const CandidateRankingPage: React.FC = () => {
         )}
 
         {hasRanked && candidates.length === 0 && !isRanking && (
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6 text-center py-12">
               <p className="text-muted-foreground">No applicants found for this job yet.</p>
             </CardContent>

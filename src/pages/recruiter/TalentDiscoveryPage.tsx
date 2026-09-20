@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
 
 interface TalentProfile {
   student_id: string;
@@ -132,14 +133,14 @@ const TalentDiscoveryPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+      <PageShell className="flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <h1 className="text-3xl font-bold flex items-center gap-3 mb-2">
           <Users className="w-8 h-8 text-primary" />
@@ -148,7 +149,7 @@ const TalentDiscoveryPage: React.FC = () => {
         <p className="text-muted-foreground mb-8">Search and discover top talent across the platform.</p>
 
         {/* Filters */}
-        <Card className="glass-card mb-6">
+        <Card className="surface-card mb-6">
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="relative md:col-span-2">
@@ -187,7 +188,7 @@ const TalentDiscoveryPage: React.FC = () => {
         {/* Talent Cards */}
         <div className="space-y-4">
           {filtered.map((t) => (
-            <Card key={t.student_id} className="glass-card-hover">
+            <Card key={t.student_id} className="surface-card-hover">
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex flex-col items-center gap-1 md:w-24 shrink-0">
@@ -246,7 +247,7 @@ const TalentDiscoveryPage: React.FC = () => {
             </Card>
           ))}
           {filtered.length === 0 && (
-            <Card className="glass-card">
+            <Card className="surface-card">
               <CardContent className="pt-6 text-center py-12">
                 <p className="text-muted-foreground">No talent matching your criteria.</p>
               </CardContent>
@@ -254,7 +255,7 @@ const TalentDiscoveryPage: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

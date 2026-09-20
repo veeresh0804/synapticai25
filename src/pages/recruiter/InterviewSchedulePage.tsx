@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Calendar, Clock, Video, Plus, Loader2, Trash2, ExternalLink, List, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import InterviewCalendarView from '@/components/recruiter/InterviewCalendarView';
+import PageShell from '@/components/shared/PageShell';
 
 interface Interview {
   id: string;
@@ -138,7 +139,7 @@ const InterviewSchedulePage: React.FC = () => {
     }
     const duration = parseInt(form.duration_minutes, 10);
     if (!Number.isFinite(duration) || duration < 15 || duration > 240) {
-      toast({ title: 'Invalid duration', description: 'Duration must be 15–240 minutes.', variant: 'destructive' });
+      toast({ title: 'Invalid duration', description: 'Duration must be 15â€“240 minutes.', variant: 'destructive' });
       return;
     }
     if (form.meeting_link && !/^https?:\/\/.+\..+/.test(form.meeting_link.trim())) {
@@ -162,7 +163,7 @@ const InterviewSchedulePage: React.FC = () => {
     }
 
     setIsSaving(true);
-    // datetime-local is local time without TZ — persist as ISO UTC so display matches.
+    // datetime-local is local time without TZ â€” persist as ISO UTC so display matches.
     const { data, error } = await supabase
       .from('interviews')
       .insert({
@@ -206,14 +207,14 @@ const InterviewSchedulePage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+      <PageShell className="flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" className="mb-6" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
@@ -242,7 +243,7 @@ const InterviewSchedulePage: React.FC = () => {
                     <SelectContent>
                       {shortlisted.map(app => (
                         <SelectItem key={app.id} value={app.id}>
-                          {app.student_name} — {app.job_title}
+                          {app.student_name} â€” {app.job_title}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -273,7 +274,7 @@ const InterviewSchedulePage: React.FC = () => {
         </div>
 
         {shortlisted.length === 0 && (
-          <Card className="glass-card mb-6">
+          <Card className="surface-card mb-6">
             <CardContent className="pt-6 text-center py-8">
               <p className="text-muted-foreground">No shortlisted candidates yet. Shortlist candidates from the ranking page first.</p>
             </CardContent>
@@ -292,7 +293,7 @@ const InterviewSchedulePage: React.FC = () => {
 
           <TabsContent value="list">
             {interviews.length === 0 ? (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="pt-6 text-center py-12">
                   <Calendar className="w-16 h-16 text-primary/30 mx-auto mb-4" />
                   <p className="text-muted-foreground">No interviews scheduled yet.</p>
@@ -301,7 +302,7 @@ const InterviewSchedulePage: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {interviews.map(iv => (
-                  <Card key={iv.id} className="glass-card-hover">
+                  <Card key={iv.id} className="surface-card-hover">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between">
                         <div className="space-y-2">
@@ -315,7 +316,7 @@ const InterviewSchedulePage: React.FC = () => {
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Time TBD' : format(d, 'p'); })()} · {iv.duration_minutes}min
+                              {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Time TBD' : format(d, 'p'); })()} Â· {iv.duration_minutes}min
                             </span>
                           </div>
                           {iv.meeting_link && (

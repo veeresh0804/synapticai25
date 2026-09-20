@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Bell, Trophy, Calendar, Info, CheckCheck, Filter } from 'lucide-react';
+﻿import React, { useEffect, useState } from 'react';
+import { Bell, Trophy, Calendar, Info, CheckCheck, Filter, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, format } from 'date-fns';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
 
 interface Notification {
   id: string;
@@ -92,85 +94,86 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-24 max-w-3xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10">
-            <Bell className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
-            <p className="text-sm text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
-            </p>
-          </div>
-        </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={markAllRead}>
-            <CheckCheck className="w-4 h-4" /> Mark all read
-          </Button>
-        )}
-      </div>
+    <PageShell>
+      <div className="max-w-3xl mx-auto">
+        <PageHeader
+          eyebrow="Updates"
+          title="Notifications"
+          description={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'All caught up'}
+          backTo="/student/dashboard"
+          backLabel="Back to dashboard"
+          actions={
+            unreadCount > 0 ? (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={markAllRead}>
+                <CheckCheck className="w-4 h-4" /> Mark all read
+              </Button>
+            ) : undefined
+          }
+        />
 
-      <Tabs value={filter} onValueChange={setFilter} className="mb-6">
-        <TabsList className="flex-wrap h-auto max-w-full overflow-x-auto">
-          <TabsTrigger value="all" className="gap-1.5">
-            <Filter className="w-3.5 h-3.5" /> All
-          </TabsTrigger>
-          <TabsTrigger value="shortlisted" className="gap-1.5">
-            <Trophy className="w-3.5 h-3.5" /> Shortlisted
-          </TabsTrigger>
-          <TabsTrigger value="interview" className="gap-1.5">
-            <Calendar className="w-3.5 h-3.5" /> Interviews
-          </TabsTrigger>
-          <TabsTrigger value="info" className="gap-1.5">
-            <Info className="w-3.5 h-3.5" /> General
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <Tabs value={filter} onValueChange={setFilter} className="mb-6">
+          <TabsList className="flex-wrap h-auto max-w-full overflow-x-auto">
+            <TabsTrigger value="all" className="gap-1.5">
+              <Filter className="w-3.5 h-3.5" /> All
+            </TabsTrigger>
+            <TabsTrigger value="shortlisted" className="gap-1.5">
+              <Trophy className="w-3.5 h-3.5" /> Shortlisted
+            </TabsTrigger>
+            <TabsTrigger value="interview" className="gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Interviews
+            </TabsTrigger>
+            <TabsTrigger value="info" className="gap-1.5">
+              <Info className="w-3.5 h-3.5" /> General
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      <div className="space-y-2">
-        {loading ? (
-          <Card><CardContent className="py-12 text-center text-muted-foreground">Loading...</CardContent></Card>
-        ) : notifications.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Bell className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-              <p className="text-muted-foreground">No notifications found</p>
-            </CardContent>
-          </Card>
-        ) : (
-          notifications.map((n) => (
-            <Card
-              key={n.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${!n.is_read ? 'border-primary/30 bg-primary/[0.03]' : ''}`}
-              onClick={() => handleClick(n)}
-            >
-              <CardContent className="flex gap-4 items-start py-4 px-5">
-                <div className="mt-0.5">{typeIcon(n.type)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className={`text-sm leading-tight ${!n.is_read ? 'font-semibold text-foreground' : 'font-medium text-foreground/80'}`}>
-                      {n.title}
-                    </p>
-                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{n.message}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    {typeBadge(n.type)}
-                    <span className="text-xs text-muted-foreground/70">
-                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                      {' · '}
-                      {format(new Date(n.created_at), 'MMM d, yyyy h:mm a')}
-                    </span>
+        <div className="space-y-2">
+          {loading ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="surface-card">
+              <EmptyState
+                icon={<Bell className="w-6 h-6" />}
+                title="No notifications found"
+                description="You'll see them here when something happens."
+              />
+            </div>
+          ) : (
+            notifications.map((n) => (
+              <div
+                key={n.id}
+                className={`surface-card cursor-pointer transition-all hover:-translate-y-0.5 hover:border-primary/40 ${!n.is_read ? 'border-primary/30 bg-primary/[0.03]' : ''}`}
+                onClick={() => handleClick(n)}
+              >
+                <div className="flex gap-4 items-start py-4 px-5">
+                  <div className="mt-0.5">{typeIcon(n.type)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className={`text-sm leading-tight ${!n.is_read ? 'font-semibold text-foreground' : 'font-medium text-foreground/80'}`}>
+                        {n.title}
+                      </p>
+                      {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{n.message}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {typeBadge(n.type)}
+                      <span className="text-xs text-muted-foreground/70">
+                        {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                        {' Â· '}
+                        {format(new Date(n.created_at), 'MMM d, yyyy h:mm a')}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

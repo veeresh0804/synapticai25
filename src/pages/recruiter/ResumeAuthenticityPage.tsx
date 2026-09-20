@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ShieldCheck, ShieldAlert, ShieldX, Loader2, ArrowLeft, Search, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { describeEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
 
 interface StudentEntry {
   id: string;
@@ -108,7 +109,7 @@ const ResumeAuthenticityPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
@@ -150,7 +151,7 @@ const ResumeAuthenticityPage: React.FC = () => {
           {/* Result */}
           <div>
             {isChecking && (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="py-12 text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-3" />
                   <p className="text-muted-foreground">Analyzing {selectedStudent?.name}'s profile...</p>
@@ -159,7 +160,7 @@ const ResumeAuthenticityPage: React.FC = () => {
             )}
             {result && !isChecking && (
               <div className="space-y-4">
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-4 mb-4">
                       {riskIcon(result.risk_level)}
@@ -176,14 +177,14 @@ const ResumeAuthenticityPage: React.FC = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Signals</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {(result.signals || []).length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No signals returned — try again.</p>
+                        <p className="text-sm text-muted-foreground">No signals returned â€” try again.</p>
                       ) : (
                       (result.signals || []).map((sig, i) => (
                         <div key={`check-${i}`} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30">
@@ -199,7 +200,7 @@ const ResumeAuthenticityPage: React.FC = () => {
                 </Card>
 
                 {(result.recommendations || []).length > 0 && (
-                  <Card className="glass-card">
+                  <Card className="surface-card">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base">Recommendations</CardTitle>
                     </CardHeader>
@@ -207,7 +208,7 @@ const ResumeAuthenticityPage: React.FC = () => {
                       <ul className="space-y-1">
                         {(result.recommendations || []).map((r, i) => (
                           <li key={`rec-${i}`} className="text-sm flex items-start gap-2">
-                            <span className="text-primary mt-0.5">•</span> {r}
+                            <span className="text-primary mt-0.5">â€¢</span> {r}
                           </li>
                         ))}
                       </ul>
@@ -217,7 +218,7 @@ const ResumeAuthenticityPage: React.FC = () => {
               </div>
             )}
             {!result && !isChecking && (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="py-12 text-center">
                   <ShieldCheck className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
                   <p className="text-muted-foreground">Select a student to run authenticity analysis</p>
@@ -227,7 +228,7 @@ const ResumeAuthenticityPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

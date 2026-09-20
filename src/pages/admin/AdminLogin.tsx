@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Shield, Mail, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
 
 const AdminLogin: React.FC = () => {
   const { signIn, logout } = useAuth();
@@ -28,7 +29,7 @@ const AdminLogin: React.FC = () => {
       return;
     }
 
-    // Check admin role (retry briefly — session may not be established yet)
+    // Check admin role (retry briefly â€” session may not be established yet)
     let user = (await supabase.auth.getUser()).data.user;
     for (let i = 0; i < 4 && !user; i++) {
       await new Promise((r) => setTimeout(r, 300));
@@ -56,7 +57,7 @@ const AdminLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-20 pb-12 flex items-center justify-center px-4">
-      <Card className="glass-card w-full max-w-md">
+      <Card className="surface-card w-full max-w-md">
         <CardHeader className="text-center">
           <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-primary" />
@@ -72,7 +73,7 @@ const AdminLogin: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label className="flex items-center gap-2"><Lock className="w-4 h-4" /> Password</Label>
-              <Input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+              <Input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
             </div>
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-sm text-primary hover:underline">

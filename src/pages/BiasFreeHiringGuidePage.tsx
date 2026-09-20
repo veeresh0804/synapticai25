@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Shield, EyeOff, Scale, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
           </h1>
           <p className="text-lg text-muted-foreground">
             Names, colleges, and gender shouldn't decide who gets an interview. Combining anonymized
-            profiles with verified skill signals from GitHub and LeetCode lets teams hire on evidence —
+            profiles with verified skill signals from GitHub and LeetCode lets teams hire on evidence â€”
             not on patterns that reproduce historical bias.
           </p>
         </header>
@@ -41,7 +41,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
         <section className="space-y-3">
           <h2 className="text-2xl font-semibold">Why traditional screening reproduces bias</h2>
           <p className="text-muted-foreground">
-            Resume screening surfaces signals correlated with race, gender, and socioeconomic status —
+            Resume screening surfaces signals correlated with race, gender, and socioeconomic status â€”
             elite school names, "prestige" employers, and language patterns. Even well-intentioned
             recruiters anchor on these signals, and so do AI models trained on historical hiring data.
             The result: equally qualified candidates from non-traditional backgrounds get filtered out
@@ -52,7 +52,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">The anonymized + evidence-based approach</h2>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="glass-card p-5 space-y-2">
+            <div className="surface-card p-5 space-y-2">
               <EyeOff className="w-6 h-6 text-primary" />
               <h3 className="font-semibold">Hide identity signals</h3>
               <p className="text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
                 and evidence first, identity only after shortlisting.
               </p>
             </div>
-            <div className="glass-card p-5 space-y-2">
+            <div className="surface-card p-5 space-y-2">
               <GitBranch className="w-6 h-6 text-primary" />
               <h3 className="font-semibold">Anchor on verified work</h3>
               <p className="text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
                 They reward what a candidate built, not where they studied.
               </p>
             </div>
-            <div className="glass-card p-5 space-y-2">
+            <div className="surface-card p-5 space-y-2">
               <Scale className="w-6 h-6 text-primary" />
               <h3 className="font-semibold">Score against a rubric</h3>
               <p className="text-sm text-muted-foreground">
@@ -76,7 +76,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
                 every applicant so comparisons are consistent.
               </p>
             </div>
-            <div className="glass-card p-5 space-y-2">
+            <div className="surface-card p-5 space-y-2">
               <Shield className="w-6 h-6 text-primary" />
               <h3 className="font-semibold">Audit the AI</h3>
               <p className="text-sm text-muted-foreground">
@@ -127,7 +127,7 @@ const BiasFreeHiringGuidePage: React.FC = () => {
           <h2 className="text-2xl font-semibold">How SynapticAI implements this</h2>
           <p className="text-muted-foreground">
             SynapticAI's ranking engine weights resume signals at 40%, GitHub and LeetCode evidence at
-            30%, AI profile analysis at 20%, and education at 10% — deliberately capping the
+            30%, AI profile analysis at 20%, and education at 10% â€” deliberately capping the
             education weight so verified work dominates. The bias detector flags loaded language in
             job descriptions before they're published, and the candidate view defaults to a
             skills-first layout that surfaces evidence over identity.

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, Video, ExternalLink, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
 
 interface Interview {
   id: string;
@@ -40,6 +42,7 @@ const InterviewsPage: React.FC = () => {
           .in('id', jobIds);
 
         const enriched = data.map(iv => {
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
           const job = (jobs as any[])?.find(j => j.id === iv.job_id);
           return {
             ...iv,
@@ -54,70 +57,90 @@ const InterviewsPage: React.FC = () => {
     fetch();
   }, [studentProfile?.id]);
 
-  const statusColor = (s: string) => {
-    if (s === 'scheduled') return 'badge-primary';
-    if (s === 'completed') return 'badge-success';
-    if (s === 'cancelled') return 'badge-destructive';
-    return '';
+  const statusVariant = (s: string) => {
+    if (s === 'scheduled') return 'default';
+    if (s === 'completed') return 'secondary';
+    if (s === 'cancelled') return 'destructive';
+    return 'outline';
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <h1 className="text-3xl font-bold flex items-center gap-3 mb-8">
-          <Calendar className="w-8 h-8 text-primary" /> My Interviews
-        </h1>
+    <PageShell>
+      <div className="max-w-4xl mx-auto">
+        <PageHeader
+          eyebrow="Schedule"
+          title="My Interviews"
+          description="View and join your scheduled recruiter interviews."
+          backTo="/student/dashboard"
+          backLabel="Back to dashboard"
+        />
 
-        {interviews.length === 0 ? (
-          <Card className="glass-card">
-            <CardContent className="pt-6 text-center py-12">
-              <Calendar className="w-16 h-16 text-primary/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">No interviews scheduled yet. You'll see them here once a recruiter schedules one.</p>
-            </CardContent>
-          </Card>
+        {isLoading ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : interviews.length === 0 ? (
+          <div className="surface-card">
+            <EmptyState
+              icon={<Calendar className="w-6 h-6" />}
+              title="No interviews scheduled yet"
+              description="You'll see them here once a recruiter schedules one."
+            />
+          </div>
         ) : (
           <div className="space-y-4">
-            {interviews.map(iv => (
-              <Card key={iv.id} className="glass-card-hover">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="space-y-2 min-w-0">
-                      <h3 className="font-semibold break-words">{iv.job_title}</h3>
-                      <p className="text-sm text-muted-foreground">{iv.company_name}</p>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Date TBD' : format(d, 'PPP'); })()}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {(() => { const d = new Date(iv.scheduled_at); return isNaN(d.getTime()) ? 'Time TBD' : format(d, 'p'); })()} · {iv.duration_minutes}min
-                        </span>
+            {interviews.map(iv => {
+              const d = new Date(iv.scheduled_at);
+              const isInvalidDate = isNaN(d.getTime());
+              return (
+                <div key={iv.id} className="surface-card animate-rise p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    
+                    <div className="flex items-start gap-4 min-w-0">
+                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[14px] bg-primary/10 text-primary" aria-hidden>
+                        <span className="text-[11px] font-semibold uppercase">{isInvalidDate ? 'TBD' : format(d, 'MMM')}</span>
+                        <span className="text-lg font-bold leading-none">{isInvalidDate ? '-' : format(d, 'dd')}</span>
                       </div>
-                      {iv.meeting_link && (
-                        <a href={iv.meeting_link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary flex items-center gap-1 hover:underline">
-                          <Video className="w-3 h-3" /> Join Meeting <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                      {iv.notes && <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2">{iv.notes}</p>}
+                      
+                      <div className="space-y-2 min-w-0">
+                        <div>
+                          <h3 className="font-display font-semibold text-lg break-words">{iv.job_title}</h3>
+                          <p className="text-sm font-medium text-muted-foreground">{iv.company_name}</p>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4" />
+                            {isInvalidDate ? 'Date TBD' : format(d, 'EEEE, MMMM do, yyyy')}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-4 h-4" />
+                            {isInvalidDate ? 'Time TBD' : format(d, 'p')} Â· {iv.duration_minutes}min
+                          </span>
+                        </div>
+                        
+                        {iv.meeting_link && (
+                          <div className="mt-2">
+                            <a href={iv.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+                              <Video className="w-4 h-4" /> Join Meeting <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
+                        {iv.notes && <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 mt-3">{iv.notes}</p>}
+                      </div>
                     </div>
-                    <Badge className={statusColor(iv.status)}>{iv.status}</Badge>
+                    
+                    <div className="shrink-0">
+                      <Badge variant={statusVariant(iv.status)} className="capitalize">{iv.status}</Badge>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 };
 

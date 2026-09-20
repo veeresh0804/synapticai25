@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { FileSearch, Clock, CheckCircle2, XCircle, Building2, Calendar } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+﻿import React, { useEffect, useState } from 'react';
+import { FileSearch, Clock, CheckCircle2, XCircle, Building2, Calendar, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
 
 interface ApplicationWithJob {
   id: string;
@@ -52,48 +54,57 @@ const ApplicationsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <FileSearch className="w-8 h-8 text-primary" />
-            My Applications
-          </h1>
-          <p className="text-muted-foreground mt-2">Track the status of your job applications</p>
-        </div>
+    <PageShell>
+      <div className="max-w-4xl mx-auto">
+        <PageHeader
+          eyebrow="Tracking"
+          title="My Applications"
+          description="Track the status of your job applications."
+          backTo="/student/dashboard"
+          backLabel="Back to dashboard"
+        />
 
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
         ) : applications.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">No applications yet. Browse jobs to get started!</div>
+          <div className="surface-card">
+            <EmptyState
+              icon={<FileSearch className="w-6 h-6" />}
+              title="No applications yet"
+              description="Browse jobs to get started!"
+              actionLabel="Browse Jobs"
+              actionTo="/student/jobs"
+            />
+          </div>
         ) : (
           <div className="space-y-4">
             {applications.map((app) => {
               const config = statusConfig[app.status] || statusConfig.pending;
               const StatusIcon = config.icon;
               return (
-                <Card key={app.id} className="glass-card">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-1 min-w-0">
-                        <h3 className="font-semibold truncate">{app.jobs?.title || 'Job'}</h3>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />{app.jobs?.recruiters?.company_name || 'Company'} • Applied {timeAgo(app.applied_at)}
-                        </p>
-                      </div>
-                      <Badge className={config.class}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {config.label}
-                      </Badge>
+                <div key={app.id} className="surface-card animate-rise p-6 transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <h3 className="font-display font-semibold text-lg truncate">{app.jobs?.title || 'Job'}</h3>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        {app.jobs?.recruiters?.company_name || 'Company'} Â· Applied {timeAgo(app.applied_at)}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Badge className={config.class}>
+                      <StatusIcon className="w-3 h-3 mr-1" />
+                      {config.label}
+                    </Badge>
+                  </div>
+                </div>
               );
             })}
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 };
 

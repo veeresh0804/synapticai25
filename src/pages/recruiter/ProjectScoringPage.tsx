@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Code2, Loader2, ArrowLeft, Search, Star, GitBranch, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { describeEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
 
 interface StudentEntry {
   id: string;
@@ -122,7 +123,7 @@ const ProjectScoringPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <Button variant="ghost" className="mb-4" onClick={() => navigate('/recruiter/dashboard')}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
@@ -158,7 +159,7 @@ const ProjectScoringPage: React.FC = () => {
           {/* Results */}
           <div className="lg:col-span-2">
             {isScoring && (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="py-12 text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-3" />
                   <p className="text-muted-foreground">Scoring {selectedStudent?.name}'s projects...</p>
@@ -168,7 +169,7 @@ const ProjectScoringPage: React.FC = () => {
             {result && !isScoring && (
               <div className="space-y-4">
                 {/* Overview */}
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-6 mb-4">
                       <div className="text-center">
@@ -193,7 +194,7 @@ const ProjectScoringPage: React.FC = () => {
 
                 {/* Projects */}
                 {(result.projects || []).map((proj, i) => (
-                  <Card key={`proj-${i}`} className="glass-card">
+                  <Card key={`proj-${i}`} className="surface-card">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -224,7 +225,7 @@ const ProjectScoringPage: React.FC = () => {
               </div>
             )}
             {!result && !isScoring && (
-              <Card className="glass-card">
+              <Card className="surface-card">
                 <CardContent className="py-12 text-center">
                   <Code2 className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
                   <p className="text-muted-foreground">Select a student to score their GitHub projects</p>
@@ -234,7 +235,7 @@ const ProjectScoringPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

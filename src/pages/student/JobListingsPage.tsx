@@ -1,23 +1,29 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Briefcase, Building2, MapPin, Clock, ArrowRight, Search, SlidersHorizontal, X } from 'lucide-react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
+import { Search, SlidersHorizontal, X, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
+import JobCard from '@/components/student/JobCard';
+import EmptyState from '@/components/shared/EmptyState';
 
 interface JobWithRecruiter {
   id: string;
   title: string;
   location: string;
   job_type: string;
+  description: string | null;
+  experience_required: string | null;
   required_skills: string[];
   salary_range: string | null;
   created_at: string;
   recruiters: { company_name: string } | null;
 }
+
+type SortKey = 'newest' | 'oldest' | 'title';
 
 const JobListingsPage: React.FC = () => {
   const [jobs, setJobs] = useState<JobWithRecruiter[]>([]);
@@ -30,15 +36,16 @@ const JobListingsPage: React.FC = () => {
   const [jobTypeFilter, setJobTypeFilter] = useState('all');
   const [skillFilter, setSkillFilter] = useState('all');
   const [salaryFilter, setSalaryFilter] = useState('all');
+  const [sortKey, setSortKey] = useState<SortKey>('newest');
 
   useEffect(() => {
     const fetchJobs = async () => {
       const { data } = await supabase
         .from('jobs')
-        .select('id, title, location, job_type, required_skills, salary_range, created_at, recruiters(company_name)')
+        .select('id, title, location, job_type, description, experience_required, required_skills, salary_range, created_at, recruiters(company_name)')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
-      setJobs((data as any) || []);
+      setJobs(((data as unknown) || []) as JobWithRecruiter[]);
       setIsLoading(false);
     };
     fetchJobs();
@@ -46,24 +53,24 @@ const JobListingsPage: React.FC = () => {
 
   // Derive unique filter options from data
   const filterOptions = useMemo(() => {
-    const locations = [...new Set(jobs.map(j => j.location))].sort();
-    const jobTypes = [...new Set(jobs.map(j => j.job_type))].sort();
+    const locations = [...new Set(jobs.map(j => j.location).filter(Boolean))].sort();
+    const jobTypes = [...new Set(jobs.map(j => j.job_type).filter(Boolean))].sort();
     const skills = [...new Set(jobs.flatMap(j => j.required_skills ?? []))].sort();
     return { locations, jobTypes, skills };
   }, [jobs]);
 
-  // Apply filters
+  // Apply filters + sort
   const filteredJobs = useMemo(() => {
-    return jobs.filter(job => {
+    const list = jobs.filter(job => {
       const skills = job.required_skills ?? [];
-      // Search query — match title, company, location, or skills
+      // Search query â€” match title, company, location, or skills
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchesSearch =
-          job.title.toLowerCase().includes(q) ||
-          job.location.toLowerCase().includes(q) ||
-          job.recruiters?.company_name?.toLowerCase().includes(q) ||
-          skills.some(s => s.toLowerCase().includes(q));
+          (job.title ?? '').toLowerCase().includes(q) ||
+          (job.location ?? '').toLowerCase().includes(q) ||
+          (job.recruiters?.company_name ?? '').toLowerCase().includes(q) ||
+          skills.some(s => (s ?? '').toLowerCase().includes(q));
         if (!matchesSearch) return false;
       }
 
@@ -84,7 +91,12 @@ const JobListingsPage: React.FC = () => {
 
       return true;
     });
-  }, [jobs, searchQuery, locationFilter, jobTypeFilter, skillFilter, salaryFilter]);
+    const sorted = [...list];
+    if (sortKey === 'oldest') sorted.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+    else if (sortKey === 'title') sorted.sort((a, b) => (a.title ?? '').localeCompare(b.title ?? ''));
+    else sorted.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+    return sorted;
+  }, [jobs, searchQuery, locationFilter, jobTypeFilter, skillFilter, salaryFilter, sortKey]);
 
   const activeFilterCount = [locationFilter, jobTypeFilter, skillFilter, salaryFilter].filter(f => f !== 'all').length;
 
@@ -96,182 +108,160 @@ const JobListingsPage: React.FC = () => {
     setSalaryFilter('all');
   };
 
-  const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return '1 day ago';
-    if (days < 7) return `${days} days ago`;
-    return `${Math.floor(days / 7)} weeks ago`;
-  };
+  const filterPanel = (
+    <div className="surface-card animate-rise space-y-5 p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-base font-bold">Filters</h2>
+        {activeFilterCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
+            <X className="h-3 w-3" aria-hidden /> Clear all
+          </Button>
+        )}
+      </div>
+      {([
+        { label: 'Location', value: locationFilter, onChange: setLocationFilter, allLabel: 'All locations', options: filterOptions.locations },
+        { label: 'Work type', value: jobTypeFilter, onChange: setJobTypeFilter, allLabel: 'All types', options: filterOptions.jobTypes },
+        { label: 'Skill', value: skillFilter, onChange: setSkillFilter, allLabel: 'All skills', options: filterOptions.skills },
+      ] as const).map((f) => (
+        <div key={f.label} className="space-y-1.5">
+          <label className="eyebrow">{f.label}</label>
+          <Select value={f.value} onValueChange={f.onChange}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{f.allLabel}</SelectItem>
+              {f.options.map((opt) => (
+                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ))}
+      <div className="space-y-1.5">
+        <label className="eyebrow">Salary (LPA)</label>
+        <Select value={salaryFilter} onValueChange={setSalaryFilter}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any salary</SelectItem>
+            <SelectItem value="under5">Under 5 LPA</SelectItem>
+            <SelectItem value="5to10">5â€“10 LPA</SelectItem>
+            <SelectItem value="10to20">10â€“20 LPA</SelectItem>
+            <SelectItem value="above20">Above 20 LPA</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Briefcase className="w-8 h-8 text-primary" />
-            Job Openings
-          </h1>
-          <p className="text-muted-foreground mt-2">Browse available positions and check your eligibility</p>
+    <PageShell>
+      <PageHeader
+        eyebrow="Browse jobs"
+        title="Find your next opportunity"
+        description="Explore roles matched to your verified skills and career goals."
+      />
+
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            placeholder="Search jobs, skills, companies, locationsâ€¦"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-12 rounded-[14px] pl-10"
+            aria-label="Search jobs"
+          />
         </div>
+        <div className="flex gap-2">
+          <Button
+            variant={showFilters ? 'default' : 'outline'}
+            onClick={() => setShowFilters(!showFilters)}
+            className="h-12 gap-2 rounded-[14px] lg:hidden"
+            aria-expanded={showFilters}
+          >
+            <SlidersHorizontal className="h-4 w-4" aria-hidden />
+            Filters
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1 bg-primary-foreground px-1.5 py-0 text-xs text-primary">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </Button>
+          <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+            <SelectTrigger className="h-12 w-40 rounded-[14px]" aria-label="Sort jobs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="oldest">Oldest first</SelectItem>
+              <SelectItem value="title">Title Aâ€“Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-        {/* Search & Filter Bar */}
-        <div className="mb-6 space-y-3">
-          <div className="flex gap-2">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search jobs, skills, companies, locations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button
-              variant={showFilters ? 'default' : 'outline'}
-              onClick={() => setShowFilters(!showFilters)}
-              className="gap-2 shrink-0"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <Badge className="bg-primary-foreground text-primary ml-1 text-xs px-1.5 py-0">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
+      {showFilters && <div className="mb-6 lg:hidden">{filterPanel}</div>}
 
-          {/* Filter Dropdowns */}
-          {showFilters && (
-            <Card className="glass-card animate-fade-in">
-              <CardContent className="pt-4 pb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Location</label>
-                    <Select value={locationFilter} onValueChange={setLocationFilter}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Locations</SelectItem>
-                        {filterOptions.locations.map(loc => (
-                          <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <aside className="hidden lg:block" aria-label="Job filters">
+          <div className="sticky top-[114px]">{filterPanel}</div>
+        </aside>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Type</label>
-                    <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        {filterOptions.jobTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Skill</label>
-                    <Select value={skillFilter} onValueChange={setSkillFilter}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Skills</SelectItem>
-                        {filterOptions.skills.map(skill => (
-                          <SelectItem key={skill} value={skill}>{skill}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Salary (LPA)</label>
-                    <Select value={salaryFilter} onValueChange={setSalaryFilter}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Any Salary</SelectItem>
-                        <SelectItem value="under5">Under 5 LPA</SelectItem>
-                        <SelectItem value="5to10">5–10 LPA</SelectItem>
-                        <SelectItem value="10to20">10–20 LPA</SelectItem>
-                        <SelectItem value="above20">Above 20 LPA</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {activeFilterCount > 0 && (
-                  <div className="flex justify-end mt-3">
-                    <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
-                      <X className="w-3 h-3" /> Clear all filters
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Results count */}
+        <section aria-label="Job results" aria-live="polite">
           {!isLoading && (
-            <p className="text-sm text-muted-foreground">
+            <p className="mb-4 text-sm text-muted-foreground">
               {filteredJobs.length === jobs.length
                 ? `${jobs.length} job${jobs.length !== 1 ? 's' : ''} available`
                 : `${filteredJobs.length} of ${jobs.length} jobs match your filters`}
             </p>
           )}
-        </div>
 
-        {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
-        ) : filteredJobs.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              {jobs.length === 0
-                ? 'No jobs available at the moment.'
-                : 'No jobs match your filters.'}
-            </p>
-            {jobs.length > 0 && (
-              <Button variant="link" onClick={clearFilters} className="mt-2">
-                Clear filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredJobs.map((job) => (
-              <Card key={job.id} className="glass-card-hover">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="space-y-2 flex-1 min-w-0">
-                      <h3 className="text-xl font-semibold break-words">{job.title}</h3>
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><Building2 className="w-4 h-4" />{job.recruiters?.company_name || 'Company'}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{timeAgo(job.created_at)}</span>
-                        <Badge variant="secondary">{job.job_type}</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {job.required_skills.slice(0, 5).map((skill) => (
-                          <Badge key={skill} className="badge-primary">{skill}</Badge>
-                        ))}
-                      </div>
-                      {job.salary_range && <p className="text-sm text-muted-foreground">💰 {job.salary_range}</p>}
+          {isLoading ? (
+            <div className="grid gap-4" aria-label="Loading jobs">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="surface-card animate-pulse p-6" aria-hidden>
+                  <div className="flex gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-5 w-2/3 rounded bg-muted" />
+                      <div className="h-4 w-1/2 rounded bg-muted" />
                     </div>
-                    <Link to={`/student/jobs/${job.id}`}>
-                      <Button className="btn-primary gap-2">
-                        View Details <ArrowRight className="w-4 h-4" />
-                      </Button>
-                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                </div>
+              ))}
+            </div>
+          ) : filteredJobs.length === 0 ? (
+            <div className="surface-card">
+              <EmptyState
+                icon={<SearchX className="h-6 w-6" aria-hidden />}
+                title={jobs.length === 0 ? 'No jobs available yet' : 'No jobs match your filters'}
+                description={jobs.length === 0 ? 'New openings from verified recruiters will appear here.' : 'Try broadening your search or clearing a filter.'}
+                actionLabel={jobs.length === 0 ? undefined : 'Clear filters'}
+                onAction={jobs.length === 0 ? undefined : clearFilters}
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {filteredJobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={{
+                    id: job.id,
+                    title: job.title,
+                    company: job.recruiters?.company_name || 'Company',
+                    location: job.location,
+                    jobType: job.job_type,
+                    experience: job.experience_required,
+                    description: job.description,
+                    skills: job.required_skills ?? [],
+                    salary: job.salary_range,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

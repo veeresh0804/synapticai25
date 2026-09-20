@@ -1,8 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Mic, Send, Loader2, Bot, User, RotateCcw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { Mic, Send, Loader2, Bot, User, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,6 +10,8 @@ import ReactMarkdown from 'react-markdown';
 import { describeEdgeError, parseEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
 import { supabase, isMockEnvClient } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
+import PageHeader from '@/components/shared/PageHeader';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -140,21 +140,19 @@ const InterviewSimPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <Link to="/student/dashboard" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </Link>
-
-        <div className="flex items-center gap-3 mb-2">
-          <Mic className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold">AI Interview Simulator</h1>
-        </div>
-        <p className="text-muted-foreground mb-8">Practice mock interviews with AI and get real-time feedback.</p>
+    <PageShell>
+      <div className="max-w-3xl mx-auto">
+        <PageHeader
+          eyebrow="Practice"
+          title="AI Interview Simulator"
+          description="Practice mock interviews with AI and get real-time feedback."
+          backTo="/student/dashboard"
+          backLabel="Back to dashboard"
+        />
 
         {!started ? (
-          <Card className="glass-card">
-            <CardContent className="pt-6 space-y-6">
+          <section className="surface-card p-6 animate-rise">
+            <div className="space-y-6">
               <div>
                 <label className="text-sm font-medium mb-2 block">Target Role *</label>
                 <Input value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Frontend Developer, Data Scientist..." />
@@ -173,8 +171,8 @@ const InterviewSimPage: React.FC = () => {
               <Button onClick={startInterview} className="btn-primary w-full gap-2">
                 <Mic className="w-4 h-4" /> Start Interview
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -187,17 +185,17 @@ const InterviewSimPage: React.FC = () => {
               </Button>
             </div>
 
-            <Card className="glass-card">
-              <CardContent className="pt-4 pb-4 max-h-[500px] overflow-y-auto">
+            <section className="surface-card p-0 overflow-hidden">
+              <div className="p-4 max-h-[500px] overflow-y-auto">
                 <div className="space-y-4">
                   {messages.map((msg, i) => (
                     <div key={`msg-${i}`} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                       {msg.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-[14px] bg-primary/10 flex items-center justify-center shrink-0">
                           <Bot className="w-4 h-4 text-primary" />
                         </div>
                       )}
-                      <div className={`max-w-[80%] min-w-0 rounded-lg p-3 text-sm break-words ${
+                      <div className={`max-w-[80%] min-w-0 rounded-[14px] p-3 text-sm break-words ${
                         msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
                       }`}>
                         {msg.role === 'assistant' ? (
@@ -207,7 +205,7 @@ const InterviewSimPage: React.FC = () => {
                         ) : msg.content}
                       </div>
                       {msg.role === 'user' && (
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-[14px] bg-muted flex items-center justify-center shrink-0">
                           <User className="w-4 h-4" />
                         </div>
                       )}
@@ -215,16 +213,16 @@ const InterviewSimPage: React.FC = () => {
                   ))}
                   {isStreaming && messages[messages.length - 1]?.role !== 'assistant' && (
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-[14px] bg-primary/10 flex items-center justify-center">
                         <Bot className="w-4 h-4 text-primary" />
                       </div>
-                      <div className="bg-muted rounded-lg p-3"><Loader2 className="w-4 h-4 animate-spin" /></div>
+                      <div className="bg-muted rounded-[14px] p-3"><Loader2 className="w-4 h-4 animate-spin" /></div>
                     </div>
                   )}
                   <div ref={chatEndRef} />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </section>
 
             <div className="flex gap-2 [&>*:first-child]:flex-1 [&>*:first-child]:min-w-0">
               <Input
@@ -241,7 +239,7 @@ const InterviewSimPage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 };
 

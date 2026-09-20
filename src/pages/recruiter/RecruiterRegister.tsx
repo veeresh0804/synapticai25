@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Building2, Mail, Lock, User, Globe, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { checkPasswordStrength } from '@/lib/validation';
 import Seo from '@/components/Seo';
+import PageShell from '@/components/shared/PageShell';
 
 const RecruiterRegister: React.FC = () => {
   const navigate = useNavigate();
@@ -140,14 +141,14 @@ const RecruiterRegister: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12 flex items-center justify-center">
+    <PageShell className="flex items-center justify-center">
       <Seo
         title="Recruiter Sign Up | SynapticAI"
         description="Create a SynapticAI recruiter account to post jobs, rank candidates with verified signals, and automate hiring workflows."
         path="/recruiter/register"
       />
       <div className="container mx-auto px-4 max-w-md">
-        <Card className="glass-card animate-fade-in">
+        <Card className="surface-card animate-fade-in">
           <CardHeader className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <Building2 className="w-8 h-8 text-primary" />
@@ -232,7 +233,7 @@ const RecruiterRegister: React.FC = () => {
                     <Label>Password *</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={formData.password}
+                      <Input type={showPassword ? 'text' : 'password'} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={formData.password}
                         onChange={(e) => updateField('password', e.target.value)} className="pl-10 pr-10" />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -254,7 +255,7 @@ const RecruiterRegister: React.FC = () => {
                           </div>
                           <p className={`text-xs ${strength.score <= 1 ? 'text-red-500' : strength.score === 2 ? 'text-yellow-500' : 'text-green-500'}`}>
                             {strength.label}
-                            {strength.score < 3 && ' — add uppercase, number, or symbol'}
+                            {strength.score < 3 && ' â€” add uppercase, number, or symbol'}
                           </p>
                         </div>
                       );
@@ -263,7 +264,7 @@ const RecruiterRegister: React.FC = () => {
 
                   <div className="space-y-2">
                     <Label>Confirm Password *</Label>
-                    <Input type="password" placeholder="••••••••" value={formData.confirmPassword}
+                    <Input type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" value={formData.confirmPassword}
                       onChange={(e) => updateField('confirmPassword', e.target.value)} />
                   </div>
                 </>
@@ -319,12 +320,12 @@ const RecruiterRegister: React.FC = () => {
               <p className="text-sm text-muted-foreground text-center">
                 Already have an account? <Link to="/recruiter/login" className="text-primary hover:underline">Sign in</Link>
               </p>
-              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground text-center">← Back to Home</Link>
+              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground text-center">â† Back to Home</Link>
             </CardFooter>
           )}
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

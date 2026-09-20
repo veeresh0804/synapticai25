@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Building2, MapPin, Clock, CheckCircle2, Target } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Clock, CheckCircle2, Target, Sparkles, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
+import CompanyAvatar from '@/components/student/CompanyAvatar';
+import SkillChip from '@/components/student/SkillChip';
+import EmptyState from '@/components/shared/EmptyState';
 
 interface JobDetail {
   id: string;
@@ -38,7 +41,7 @@ const JobDetailPage: React.FC = () => {
         .select('id, title, description, location, job_type, experience_required, required_skills, preferred_skills, salary_range, recruiters(company_name)')
         .eq('id', jobId)
         .single();
-      setJob(data as any);
+      setJob(data as unknown as JobDetail | null);
       setIsLoading(false);
     };
     fetchJob();
@@ -46,6 +49,8 @@ const JobDetailPage: React.FC = () => {
     // Check if already applied
     if (studentProfile?.id) {
       supabase
+      // Legacy table not present in generated Supabase types
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('student_applications' as any)
         .select('id')
         .eq('job_id', jobId)
@@ -85,74 +90,144 @@ const JobDetailPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen pt-20 pb-12 flex items-center justify-center text-muted-foreground">Loading...</div>;
+    return (
+      <PageShell>
+        <div className="surface-card animate-pulse p-8" aria-label="Loading job details">
+          <div className="h-8 w-2/3 rounded bg-muted" />
+          <div className="mt-3 h-4 w-1/2 rounded bg-muted" />
+          <div className="mt-6 space-y-2">
+            <div className="h-4 w-full rounded bg-muted" />
+            <div className="h-4 w-full rounded bg-muted" />
+            <div className="h-4 w-2/3 rounded bg-muted" />
+          </div>
+        </div>
+      </PageShell>
+    );
   }
 
   if (!job) {
-    return <div className="min-h-screen pt-20 pb-12 flex items-center justify-center text-muted-foreground">Job not found</div>;
+    return (
+      <PageShell>
+        <div className="surface-card">
+          <EmptyState
+            icon={<Building2 className="h-6 w-6" aria-hidden />}
+            title="Job not found"
+            description="This opening may have been closed or removed."
+            actionLabel="Back to jobs"
+            actionTo="/student/jobs"
+          />
+        </div>
+      </PageShell>
+    );
   }
 
+  const company = job.recruiters?.company_name || 'Company';
+  const required = job.required_skills ?? [];
+  const preferred = job.preferred_skills ?? [];
+
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="container mx-auto px-4 py-8 max-w-3xl">
-        <Link to="/student/jobs">
-          <Button variant="ghost" className="mb-6"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Jobs</Button>
-        </Link>
+    <PageShell>
+      <Link to="/student/jobs">
+        <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground">
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden /> Back to jobs
+        </Button>
+      </Link>
 
-        <Card className="glass-card mb-6">
-          <CardHeader>
-            <div className="space-y-3">
-              <CardTitle className="text-2xl">{job.title}</CardTitle>
-              <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
-                <span className="flex items-center gap-1"><Building2 className="w-4 h-4" />{job.recruiters?.company_name || 'Company'}</span>
-                <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{job.location}</span>
-                {job.experience_required && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{job.experience_required}</span>}
-                <Badge variant="secondary">{job.job_type}</Badge>
-              </div>
-              {job.salary_range && <p className="text-muted-foreground">💰 {job.salary_range}</p>}
+      <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
+        {/* Main column */}
+        <article className="surface-card animate-rise min-w-0 p-6 sm:p-8">
+          <div className="flex items-start gap-4">
+            <CompanyAvatar name={company} className="h-14 w-14 text-lg" />
+            <div className="min-w-0">
+              <h1 className="break-words font-display text-2xl font-bold leading-tight md:text-3xl">{job.title}</h1>
+              <p className="mt-1 font-semibold text-muted-foreground">{company}</p>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-2">Job Description</h3>
-              <p className="text-muted-foreground whitespace-pre-wrap">{job.description}</p>
-            </div>
+          </div>
 
-            <div>
-              <h3 className="font-semibold mb-2">Required Skills</h3>
+          <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" aria-hidden />{job.location}</span>
+            <span className="capitalize">{job.job_type}</span>
+            {job.experience_required && <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" aria-hidden />{job.experience_required}</span>}
+          </p>
+          {job.salary_range && (
+            <p className="mt-3 flex items-center gap-1.5 font-display text-lg font-bold">
+              <IndianRupee className="h-5 w-5 text-primary" aria-hidden />{job.salary_range}
+            </p>
+          )}
+
+          <section className="mt-8" aria-label="Job description">
+            <h2 className="mb-2 font-display text-lg font-bold">Job description</h2>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{job.description}</p>
+          </section>
+
+          <section className="mt-6" aria-label="Required skills">
+            <h2 className="mb-3 font-display text-lg font-bold">Required skills</h2>
+            <div className="flex flex-wrap gap-2">
+              {required.map((skill, i) => (
+                <SkillChip key={`${skill}-${i}`} skill={skill} />
+              ))}
+            </div>
+          </section>
+
+          {preferred.length > 0 && (
+            <section className="mt-6" aria-label="Preferred skills">
+              <h2 className="mb-3 font-display text-lg font-bold">Preferred skills</h2>
               <div className="flex flex-wrap gap-2">
-                {(job.required_skills ?? []).map((skill: string) => (
-                  <Badge key={skill} className="badge-primary">{skill}</Badge>
+                {preferred.map((skill, i) => (
+                  <SkillChip key={`${skill}-${i}`} skill={skill} />
                 ))}
               </div>
-            </div>
+            </section>
+          )}
+        </article>
 
-            {job.preferred_skills && job.preferred_skills.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Preferred Skills</h3>
-                <div className="flex flex-wrap gap-2">
-                  {job.preferred_skills.map((skill: string) => (
-                    <Badge key={skill} variant="secondary">{skill}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Sticky match card */}
+        <aside className="surface-card animate-rise p-6 lg:sticky lg:top-[114px]" aria-label="Your match">
+          <p className="eyebrow mb-3">Your match</p>
+          <div className="surface-soft rounded-[14px] p-4">
+            <p className="flex items-start gap-2 text-sm leading-relaxed">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span>
+                Run the AI eligibility check to see your real match score and a personalized
+                plan for the {required.length > 0 ? `${required.length} required skills` : 'requirements'} above.
+              </span>
+            </p>
+          </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button className="btn-primary gap-2" onClick={handleApply} disabled={isApplying || hasApplied}>
-                <CheckCircle2 className="w-4 h-4" />
-                {hasApplied ? 'Already Applied' : isApplying ? 'Applying...' : 'Apply Now'}
+          <div className="mt-4 space-y-2">
+            <Button className="btn-primary w-full gap-2" onClick={handleApply} disabled={isApplying || hasApplied}>
+              <CheckCircle2 className="h-4 w-4" aria-hidden />
+              {hasApplied ? 'Already applied' : isApplying ? 'Applyingâ€¦' : 'Apply now'}
+            </Button>
+            <Link to={`/student/jobs/${jobId}/eligibility`} className="block">
+              <Button variant="outline" className="w-full gap-2">
+                <Target className="h-4 w-4" aria-hidden /> Check eligibility
               </Button>
-              <Link to={`/student/jobs/${jobId}/eligibility`}>
-                <Button variant="outline" className="gap-2">
-                  <Target className="w-4 h-4" /> Check Eligibility
-                </Button>
-              </Link>
+            </Link>
+          </div>
+
+          {hasApplied && (
+            <p className="mt-3 rounded-lg bg-success/10 p-3 text-center text-xs font-semibold text-success">
+              Application submitted â€” track it in My Applications.
+            </p>
+          )}
+
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">At a glance</p>
+            <dl className="space-y-1.5 text-sm">
+              <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Company</dt><dd className="truncate font-semibold">{company}</dd></div>
+              <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Location</dt><dd className="font-semibold">{job.location}</dd></div>
+              <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Type</dt><dd className="font-semibold capitalize">{job.job_type}</dd></div>
+              <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Skills</dt><dd className="font-semibold">{required.length + preferred.length}</dd></div>
+            </dl>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <Badge variant="secondary">{job.job_type}</Badge>
+              {job.experience_required && <Badge variant="outline">{job.experience_required}</Badge>}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </aside>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

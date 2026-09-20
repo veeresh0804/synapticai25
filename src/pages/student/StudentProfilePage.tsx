@@ -1,17 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { User, Github, Code2, Linkedin, Save, CheckCircle2, Sparkles, Loader2, Star, Trophy, BookOpen, Target, Upload, FileText, ScanSearch } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { User, Github, Code2, Linkedin, Save, CheckCircle2, Sparkles, Loader2, Star, Trophy, BookOpen, Target, Upload, FileText, ScanSearch, FolderGit2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import ResumeSkillsDisplay from '@/components/student/ResumeSkillsDisplay';
+import ResumeSkillsDisplay, { type ResumeSkills } from '@/components/student/ResumeSkillsDisplay';
 import { describeEdgeError, describeEdgeErrorAsync } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
+import PageShell from '@/components/shared/PageShell';
+import ScoreRing from '@/components/student/ScoreRing';
+import SectionCard from '@/components/shared/SectionCard';
+import SkillChip from '@/components/student/SkillChip';
+import EmptyState from '@/components/shared/EmptyState';
+import PlatformRow from '@/components/student/PlatformRow';
 
 interface ProfileAnalysis {
   overall_score: number;
@@ -31,6 +36,28 @@ interface ExtractedData {
   analysis: ProfileAnalysis;
 }
 
+interface EvidenceRepo {
+  name: string;
+  description: string;
+  language: string;
+  stars: number;
+}
+
+/** Best-effort repo extraction across known github_data shapes; never throws. */
+function extractRepos(githubData: unknown): EvidenceRepo[] {
+  if (!githubData || typeof githubData !== 'object') return [];
+  const g = githubData as Record<string, unknown>;
+  const candidates = [g.repos, g.repositories, g.top_repos, g.topRepos];
+  const list = candidates.find((c) => Array.isArray(c)) as Array<Record<string, unknown>> | undefined;
+  if (!list) return [];
+  return list.slice(0, 3).map((r, i) => ({
+    name: String(r.name || r.full_name || `Repository ${i + 1}`),
+    description: String(r.description || ''),
+    language: String(r.language || r.primary_language || ''),
+    stars: Number(r.stargazers_count ?? r.stars ?? r.total_stars ?? 0) || 0,
+  }));
+}
+
 const StudentProfilePage: React.FC = () => {
   const { user, studentProfile, refreshProfile } = useAuth();
   const { toast } = useToast();
@@ -43,7 +70,7 @@ const StudentProfilePage: React.FC = () => {
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
-  const [resumeSkills, setResumeSkills] = useState<any>(null);
+  const [resumeSkills, setResumeSkills] = useState<ResumeSkills | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,22 +82,22 @@ const StudentProfilePage: React.FC = () => {
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
-          const d = data as Record<string, any>;
+          const d = data as unknown as { leetcode_url?: string; github_url?: string; linkedin_url?: string; gemini_analysis?: unknown; github_data?: Record<string, unknown>; leetcode_data?: Record<string, unknown>; resume_skills?: unknown };
           setLinks({
             leetcode: d.leetcode_url || '',
             github: d.github_url || '',
             linkedin: d.linkedin_url || '',
           });
-          if (d.gemini_analysis && Object.keys(d.gemini_analysis).length > 0) {
-            setExistingAnalysis(d.gemini_analysis as unknown as ProfileAnalysis);
+          if (d.gemini_analysis && typeof d.gemini_analysis === 'object' && Object.keys(d.gemini_analysis).length > 0) {
+            setExistingAnalysis(d.gemini_analysis as ProfileAnalysis);
             setExtracted({
-              github_data: d.github_data,
-              leetcode_data: d.leetcode_data,
-              analysis: d.gemini_analysis as unknown as ProfileAnalysis,
+              github_data: d.github_data ?? {},
+              leetcode_data: d.leetcode_data ?? {},
+              analysis: d.gemini_analysis as ProfileAnalysis,
             });
           }
-          if (d.resume_skills && Object.keys(d.resume_skills).length > 0) {
-            setResumeSkills(d.resume_skills);
+          if (d.resume_skills && typeof d.resume_skills === 'object' && Object.keys(d.resume_skills).length > 0) {
+            setResumeSkills(d.resume_skills as ResumeSkills);
           }
         }
       });
@@ -98,7 +125,7 @@ const StudentProfilePage: React.FC = () => {
       return;
     }
     // Use server-returned path when available so DB reference can't diverge
-    const storedPath = (uploadData as any)?.path ?? path;
+    const storedPath = (uploadData as unknown as { path?: string } | null)?.path ?? path;
     await supabase.from('students').update({ resume_url: storedPath }).eq('id', studentProfile.id);
     setResumeUrl(storedPath);
     toast({ title: 'Resume uploaded!' });
@@ -176,264 +203,263 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
-  const scoreColor = (score: number) => {
-    if (score >= 75) return 'text-green-600';
-    if (score >= 50) return 'text-yellow-600';
-    return 'text-red-500';
-  };
-
   const analysis = extracted?.analysis || existingAnalysis;
+  const profileStrength = studentProfile?.profile_complete ? 85 : 35;
+  const gh = analysis?.github_assessment;
+  const lc = analysis?.leetcode_assessment;
+  const repos = extractRepos(extracted?.github_data);
+  const platformStatus = (url: string, verified: boolean): 'verified' | 'connected' | 'missing' =>
+    !url ? 'missing' : verified ? 'verified' : 'connected';
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 className="text-3xl font-bold flex items-center gap-3 mb-8">
-          <User className="w-8 h-8 text-primary" />
-          My Profile
-        </h1>
+    <PageShell>
+      {/* Profile header */}
+      <section className="surface-card animate-rise mb-6 flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-center" aria-label="Profile summary">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-primary/15 font-display text-3xl font-bold text-primary" aria-hidden>
+          {(studentProfile?.name || 'S').charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="break-words font-display text-2xl font-bold leading-tight md:text-3xl">
+            {studentProfile?.name || 'My profile'}
+          </h1>
+          <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
+            {studentProfile?.institution || 'University'} â€¢ {studentProfile?.degree} {studentProfile?.branch}
+          </p>
+          <p className="mt-1 break-all text-sm text-muted-foreground">{studentProfile?.email}</p>
+        </div>
+        <div className="shrink-0 lg:w-64">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-muted-foreground">Profile strength</span>
+            <span className="font-display font-bold">{profileStrength}%</span>
+          </div>
+          <Progress value={profileStrength} className="mt-2 h-2" aria-label={`Profile strength ${profileStrength} percent`} />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {studentProfile?.profile_complete ? 'Complete your proof profile' : 'Add all three platform links to finish'}
+          </p>
+        </div>
+      </section>
 
-        {/* Basic Info */}
-        <Card className="glass-card mb-6">
-          <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-muted-foreground text-xs">Name</Label>
-                <p className="font-medium">{studentProfile?.name}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs">Email</Label>
-                <p className="font-medium">{studentProfile?.email}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs">Institution</Label>
-                <p className="font-medium">{studentProfile?.institution}</p>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs">Degree</Label>
-                <p className="font-medium">{studentProfile?.degree} - {studentProfile?.branch}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        {/* Left column */}
+        <div className="space-y-4">
+          <SectionCard icon={<User className="h-5 w-5 text-primary" aria-hidden />} title="Basic information">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {[
+                { label: 'Name', value: studentProfile?.name },
+                { label: 'Email', value: studentProfile?.email, breakAll: true },
+                { label: 'Institution', value: studentProfile?.institution },
+                { label: 'Degree', value: studentProfile?.degree && studentProfile?.branch ? `${studentProfile.degree} â€” ${studentProfile.branch}` : studentProfile?.degree },
+              ].map((f) => (
+                <div key={f.label} className="min-w-0">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{f.label}</dt>
+                  <dd className={`mt-0.5 font-semibold ${f.breakAll ? 'break-all' : 'break-words'}`}>{f.value || 'â€”'}</dd>
+                </div>
+              ))}
+            </dl>
+          </SectionCard>
 
-        {/* Resume Upload */}
-        <Card className="glass-card mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" /> Resume / CV
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleResumeUpload} />
-            <div className="flex items-center gap-3 flex-wrap">
-              <Button variant="outline" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                {isUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload Resume</>}
+          <SectionCard icon={<FileText className="h-5 w-5 text-primary" aria-hidden />} title="Resume / CV">
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleResumeUpload} aria-label="Upload resume" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                {isUploading ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Uploadingâ€¦</> : <><Upload className="h-4 w-4" aria-hidden /> Upload resume</>}
               </Button>
               {resumeUrl && (
-                <Button variant="outline" className="gap-2" onClick={handleParseResume} disabled={isParsing}>
-                  {isParsing ? <><Loader2 className="w-4 h-4 animate-spin" /> Parsing...</> : <><ScanSearch className="w-4 h-4" /> AI Parse Resume</>}
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleParseResume} disabled={isParsing}>
+                  {isParsing ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Parsingâ€¦</> : <><ScanSearch className="h-4 w-4" aria-hidden /> AI analyze</>}
                 </Button>
               )}
               {resumeUrl && (
-                <span className="text-sm text-success flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" /> Resume uploaded
+                <span className="flex items-center gap-1 text-xs font-semibold text-success">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden /> Resume uploaded Â· PDF updated
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">PDF, DOC, or DOCX — max 5MB</p>
-          </CardContent>
-        </Card>
+            <p className="mt-2 text-xs text-muted-foreground">PDF, DOC, or DOCX â€” max 5MB</p>
+          </SectionCard>
 
-        {/* Platform Links */}
-        <Card className="glass-card mb-6">
-          <CardHeader>
-            <CardTitle>Platform Links</CardTitle>
-            <CardDescription>Connect your coding profiles for AI-powered skill verification</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Code2 className="w-4 h-4 text-primary" /> LeetCode Profile URL
-              </Label>
-              <Input placeholder="https://leetcode.com/yourusername" value={links.leetcode}
-                onChange={(e) => setLinks(prev => ({ ...prev, leetcode: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Github className="w-4 h-4" /> GitHub Profile URL
-              </Label>
-              <Input placeholder="https://github.com/yourusername" value={links.github}
-                onChange={(e) => setLinks(prev => ({ ...prev, github: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Linkedin className="w-4 h-4 text-primary" /> LinkedIn Profile URL
-              </Label>
-              <Input placeholder="https://linkedin.com/in/yourusername" value={links.linkedin}
-                onChange={(e) => setLinks(prev => ({ ...prev, linkedin: e.target.value }))} />
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button className="btn-primary flex-1 gap-2" onClick={handleSave} disabled={isSaving}>
-                <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Profile'}
-              </Button>
-              <Button variant="outline" className="flex-1 gap-2" onClick={handleExtract}
-                disabled={isExtracting || (!links.github && !links.leetcode)}>
-                {isExtracting ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
-                ) : (
-                  <><Sparkles className="w-4 h-4" /> AI Analyze</>
-                )}
-              </Button>
-            </div>
-
-            {studentProfile?.profile_complete && (
-              <div className="flex items-center gap-2 text-green-600 text-sm">
-                <CheckCircle2 className="w-4 h-4" /> Profile complete! AI can now verify your skills.
+          <SectionCard
+            icon={<Link2 className="h-5 w-5 text-primary" aria-hidden />}
+            title="Verified platform links"
+          >
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Code2 className="h-4 w-4 text-primary" aria-hidden /> LeetCode profile URL</Label>
+                <Input placeholder="https://leetcode.com/yourusername" value={links.leetcode}
+                  onChange={(e) => setLinks(prev => ({ ...prev, leetcode: e.target.value }))} />
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Github className="h-4 w-4" aria-hidden /> GitHub profile URL</Label>
+                <Input placeholder="https://github.com/yourusername" value={links.github}
+                  onChange={(e) => setLinks(prev => ({ ...prev, github: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Linkedin className="h-4 w-4 text-primary" aria-hidden /> LinkedIn profile URL</Label>
+                <Input placeholder="https://linkedin.com/in/yourusername" value={links.linkedin}
+                  onChange={(e) => setLinks(prev => ({ ...prev, linkedin: e.target.value }))} />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button className="btn-primary flex-1 gap-2" onClick={handleSave} disabled={isSaving}>
+                  <Save className="h-4 w-4" aria-hidden /> {isSaving ? 'Savingâ€¦' : 'Save profile'}
+                </Button>
+                <Button variant="outline" className="flex-1 gap-2 border-primary/40 text-primary hover:bg-primary/10" onClick={handleExtract}
+                  disabled={isExtracting || (!links.github && !links.leetcode)}>
+                  {isExtracting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Analyzingâ€¦</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4" aria-hidden /> AI analyze profile</>
+                  )}
+                </Button>
+              </div>
+              {studentProfile?.profile_complete && (
+                <p className="flex items-center gap-2 text-sm font-medium text-success">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden /> Profile complete! AI can now verify your skills.
+                </p>
+              )}
+            </div>
+          </SectionCard>
+        </div>
 
-        {/* AI Analysis Results */}
-        {analysis && (
-          <>
-            {/* Overall Score */}
-            <Card className="glass-card mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" /> AI Profile Analysis
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className={`text-4xl font-bold ${scoreColor(analysis.overall_score)}`}>
-                      {analysis.overall_score}
-                    </span>
-                    <span className="text-xs text-muted-foreground">Overall Score</span>
-                    <Progress value={Number(analysis.overall_score) || 0} className="h-2 w-24" />
-                  </div>
-                  <div className="flex-1">
-                    <Badge className="mb-2">{analysis.skill_level}</Badge>
-                    <p className="text-sm text-muted-foreground">{analysis.summary}</p>
+        {/* Right column */}
+        <div className="space-y-4">
+          {analysis ? (
+            <>
+              <SectionCard icon={<Sparkles className="h-5 w-5 text-primary" aria-hidden />} title="AI resume analysis">
+                <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+                  <ScoreRing value={analysis.overall_score ?? 0} size={104} sublabel="Resume score" />
+                  <div className="min-w-0 flex-1">
+                    {analysis.skill_level && <Badge className="mb-2 border-primary/30 bg-primary/10 capitalize text-primary">{analysis.skill_level}</Badge>}
+                    <p className="text-sm leading-relaxed text-muted-foreground">{analysis.summary}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                {(analysis.strengths?.length ?? 0) > 0 && (
+                  <div className="mt-4">
+                    <p className="eyebrow mb-2">Key strengths</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(analysis.strengths ?? []).map((s, i) => (
+                        <SkillChip key={`str-${s}-${i}`} skill={s} tone="have" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </SectionCard>
 
-            {/* Skills & Strengths */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <Card className="glass-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Star className="w-4 h-4 text-primary" /> Strengths
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SectionCard icon={<Star className="h-4 w-4 text-primary" aria-hidden />} title="Strengths">
                   <div className="flex flex-wrap gap-1.5">
-                    {analysis.strengths.map((s, i) => (
-                      <Badge key={`str-${s}-${i}`} className="bg-green-100 text-green-800 text-xs">{s}</Badge>
+                    {(analysis.strengths ?? []).map((s, i) => (
+                      <SkillChip key={`st2-${s}-${i}`} skill={s} tone="have" />
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Target className="w-4 h-4 text-primary" /> Areas to Improve
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                </SectionCard>
+                <SectionCard icon={<Target className="h-4 w-4 text-primary" aria-hidden />} title="Areas to improve">
                   <div className="flex flex-wrap gap-1.5">
-                    {analysis.areas_to_improve.map((a, i) => (
-                      <Badge key={`imp-${a}-${i}`} variant="outline" className="text-orange-600 border-orange-300 text-xs">{a}</Badge>
+                    {(analysis.areas_to_improve ?? []).map((a, i) => (
+                      <SkillChip key={`imp-${a}-${i}`} skill={a} tone="missing" />
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                </SectionCard>
+              </div>
 
-            {/* Technical Skills */}
-            <Card className="glass-card mb-6">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-primary" /> Technical Skills
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              <SectionCard icon={<BookOpen className="h-4 w-4 text-primary" aria-hidden />} title="Technical skills">
                 <div className="flex flex-wrap gap-2">
-                  {analysis.technical_skills.map((skill, i) => (
-                    <Badge key={`skill-${skill}-${i}`} className="badge-primary">{skill}</Badge>
+                  {(analysis.technical_skills ?? []).map((skill, i) => (
+                    <SkillChip key={`skill-${skill}-${i}`} skill={skill} />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </SectionCard>
 
-            {/* Platform Assessments */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <Card className="glass-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Github className="w-4 h-4" /> GitHub ({analysis.github_assessment.score}/100)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Progress value={Number(analysis.github_assessment.score) || 0} className="h-1.5 mb-3" />
-                  <ul className="space-y-1">
-                    {analysis.github_assessment.highlights.map((h, i) => (
-                      <li key={`gh-${i}`} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <span className="text-primary mt-0.5">•</span> {h}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <SectionCard icon={<Github className="h-4 w-4" aria-hidden />} title={`GitHub Â· ${gh?.score ?? 0}`}>
+                  <Progress value={Number(gh?.score) || 0} className="mb-3 h-1.5" aria-label={`GitHub score ${gh?.score ?? 0}`} />
+                  <ul className="space-y-1.5">
+                    {(gh?.highlights ?? []).map((h, i) => (
+                      <li key={`gh-${i}`} className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden /> {h}
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-              </Card>
-              <Card className="glass-card">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Code2 className="w-4 h-4 text-primary" /> LeetCode ({analysis.leetcode_assessment.score}/100)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Progress value={Number(analysis.leetcode_assessment.score) || 0} className="h-1.5 mb-3" />
-                  <ul className="space-y-1">
-                    {analysis.leetcode_assessment.highlights.map((h, i) => (
-                      <li key={`lc-${i}`} className="text-xs text-muted-foreground flex items-start gap-1">
-                        <span className="text-primary mt-0.5">•</span> {h}
+                </SectionCard>
+                <SectionCard icon={<Code2 className="h-4 w-4 text-primary" aria-hidden />} title={`LeetCode Â· ${lc?.score ?? 0}`}>
+                  <Progress value={Number(lc?.score) || 0} className="mb-3 h-1.5" aria-label={`LeetCode score ${lc?.score ?? 0}`} />
+                  <ul className="space-y-1.5">
+                    {(lc?.highlights ?? []).map((h, i) => (
+                      <li key={`lc-${i}`} className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" aria-hidden /> {h}
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-              </Card>
+                </SectionCard>
+              </div>
+
+              {(analysis.recommended_roles?.length ?? 0) > 0 && (
+                <SectionCard icon={<Trophy className="h-4 w-4 text-primary" aria-hidden />} title="Recommended roles">
+                  <div className="flex flex-wrap gap-2">
+                    {(analysis.recommended_roles ?? []).map((role, i) => (
+                      <SkillChip key={`role-${role}-${i}`} skill={role} />
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+            </>
+          ) : (
+            <div className="surface-card">
+              <EmptyState
+                icon={<Sparkles className="h-6 w-6" aria-hidden />}
+                title="No AI analysis yet"
+                description="Add your GitHub and LeetCode links, save, then run AI analysis to unlock your evidence report."
+              />
             </div>
+          )}
 
-            {/* Recommended Roles */}
-            <Card className="glass-card mb-6">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-primary" /> Recommended Roles
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.recommended_roles.map((role, i) => (
-                    <Badge key={`role-${role}-${i}`} variant="secondary">{role}</Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+          <SectionCard icon={<Github className="h-5 w-5 text-primary" aria-hidden />} title="Platform verification">
+            <div className="space-y-2">
+              <PlatformRow icon={<Github className="h-5 w-5" aria-hidden />} name="GitHub" status={platformStatus(links.github, !!extracted?.github_data)} hint={links.github || 'Add your GitHub URL above'} />
+              <PlatformRow icon={<Code2 className="h-5 w-5" aria-hidden />} name="LeetCode" status={platformStatus(links.leetcode, !!extracted?.leetcode_data)} hint={links.leetcode || 'Add your LeetCode URL above'} />
+              <PlatformRow icon={<Linkedin className="h-5 w-5" aria-hidden />} name="LinkedIn" status={platformStatus(links.linkedin, false)} hint={links.linkedin || 'Add your LinkedIn URL above'} />
+            </div>
+          </SectionCard>
 
-        {/* Resume Skills Analysis */}
-        {resumeSkills && <ResumeSkillsDisplay skills={resumeSkills} />}
+          {/* Project evidence */}
+          {repos.length > 0 ? (
+            <SectionCard icon={<FolderGit2 className="h-5 w-5 text-primary" aria-hidden />} title="Project evidence">
+              <div className="grid grid-cols-1 gap-4">
+                {repos.map((r, i) => (
+                  <div key={`${r.name}-${i}`} className="rounded-[14px] border border-border p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                    <h3 className="break-words font-semibold">{r.name}</h3>
+                    {r.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{r.description}</p>}
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      {r.language && <SkillChip skill={r.language} />}
+                      {r.stars > 0 && <Badge variant="outline" className="text-xs">â˜… {r.stars}</Badge>}
+                      <Badge className="border-success/30 bg-success/10 text-xs text-success">Evidence: verified</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          ) : (
+            analysis && (
+              <div className="surface-card">
+                <EmptyState
+                  icon={<FolderGit2 className="h-6 w-6" aria-hidden />}
+                  title="No project evidence yet"
+                  description="Verify a GitHub profile with public repositories to showcase evidence strength here."
+                />
+              </div>
+            )
+          )}
+        </div>
       </div>
-    </div>
+
+          {/* Moved project evidence into the right column */}
+
+      {resumeSkills && (
+        <div className="mt-4">
+          <ResumeSkillsDisplay skills={resumeSkills} />
+        </div>
+      )}
+    </PageShell>
   );
 };
 
 export default StudentProfilePage;
-
-

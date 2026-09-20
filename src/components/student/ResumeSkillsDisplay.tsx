@@ -1,10 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Code2, Users, Award, Briefcase, FolderGit2, Layers } from 'lucide-react';
 
-interface ResumeSkills {
+export interface ResumeSkills {
   technical_skills: string[];
   soft_skills: string[];
   certifications: string[];
@@ -35,7 +35,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
   return (
     <>
       {/* Resume Score */}
-      <Card className="glass-card mb-6">
+      <Card className="surface-card mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" /> Resume Analysis
@@ -69,7 +69,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
           return (
             <>
               {languages.length > 0 && (
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Code2 className="w-4 h-4 text-primary" /> Languages
@@ -85,7 +85,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
                 </Card>
               )}
               {frameworks.length > 0 && (
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Layers className="w-4 h-4 text-primary" /> Frameworks
@@ -101,7 +101,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
                 </Card>
               )}
               {databases.length > 0 && (
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-primary" /> Databases
@@ -117,7 +117,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
                 </Card>
               )}
               {devops.length > 0 && (
-                <Card className="glass-card">
+                <Card className="surface-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Briefcase className="w-4 h-4 text-primary" /> DevOps & Tools
@@ -140,7 +140,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
       {/* Soft Skills & Certifications */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {(skills.soft_skills ?? []).length > 0 && (
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" /> Soft Skills
@@ -156,7 +156,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
           </Card>
         )}
         {(skills.certifications ?? []).length > 0 && (
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Award className="w-4 h-4 text-primary" /> Certifications
@@ -175,7 +175,7 @@ const ResumeSkillsDisplay: React.FC<Props> = ({ skills }) => {
 
       {/* Projects */}
       {(skills.projects ?? []).length > 0 && (
-        <Card className="glass-card mb-6">
+        <Card className="surface-card mb-6">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <FolderGit2 className="w-4 h-4 text-primary" /> Projects from Resume

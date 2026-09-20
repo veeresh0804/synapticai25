@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Briefcase, Users, Clock, Building2, ChevronRight, Sparkles, BarChart3, Calendar, ShieldCheck, Code2, Kanban, Radar, ShieldAlert, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import PageShell from '@/components/shared/PageShell';
 
 interface Job {
   id: string;
@@ -67,7 +68,7 @@ const RecruiterDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-12">
+    <PageShell>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
@@ -119,7 +120,7 @@ const RecruiterDashboard: React.FC = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -132,7 +133,7 @@ const RecruiterDashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
@@ -145,7 +146,7 @@ const RecruiterDashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          <Card className="glass-card">
+          <Card className="surface-card">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-warning/20 flex items-center justify-center">
@@ -161,7 +162,7 @@ const RecruiterDashboard: React.FC = () => {
         </div>
 
         {/* Job Listings */}
-        <Card className="glass-card">
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-primary" />
@@ -183,9 +184,9 @@ const RecruiterDashboard: React.FC = () => {
                       <h3 className="font-semibold truncate">{job.title}</h3>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>{job.location}</span>
-                        <span>•</span>
+                        <span>â€¢</span>
                         <span>{job.job_type}</span>
-                        <span>•</span>
+                        <span>â€¢</span>
                         <span>{timeAgo(job.created_at)}</span>
                       </div>
                     </div>
@@ -210,7 +211,7 @@ const RecruiterDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   );
 };
 
