@@ -38,3 +38,5 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 backend/apache-maven-*/
 
+
+supabase/.temp/
