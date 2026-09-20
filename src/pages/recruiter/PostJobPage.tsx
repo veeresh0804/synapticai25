@@ -132,8 +132,6 @@ const PostJobPage: React.FC = () => {
     setIsPosting(false);
   };
 
-  import PageShell from '@/components/shared/PageShell';
-
 const steps = [
     { num: 1, label: 'Job Details', icon: Briefcase },
     { num: 2, label: 'Description', icon: FileText },

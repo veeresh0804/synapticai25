@@ -214,7 +214,7 @@ const BiasDetectorPage: React.FC = () => {
           </Card>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 };
 
