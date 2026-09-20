@@ -2,12 +2,35 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || 'http://localhost:8081';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || 'mock-key';
+const RAW_URL = (import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL || '').trim();
+const RAW_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY || '').trim();
+const SUPABASE_URL = RAW_URL || 'http://localhost:8081';
+const SUPABASE_ANON_KEY = RAW_KEY || 'mock-key';
+
+// Loopback check: catches accidental production configs pointing at any local
+// address (localhost, 127.x, 0.0.0.0, ::1), not just the default :8081.
+const isLoopbackUrl = /^(https?:\/\/)?(localhost|127(\.\d{1,3}){3}|0\.0\.0\.0|\[::1\])(:\d+)?(\/|$)/i.test(SUPABASE_URL);
+// Shape check: anything that is not even an http(s) URL can never be a backend.
+const isHttpUrl = /^https?:\/\/.+/i.test(SUPABASE_URL);
 
 // Initialize real Supabase client if not in mock environment
-const isMockEnv = SUPABASE_URL === 'http://localhost:8081' || SUPABASE_ANON_KEY === 'mock-key';
+const isMockEnv = SUPABASE_URL === 'http://localhost:8081' || SUPABASE_ANON_KEY === 'mock-key' || !isHttpUrl;
 export const isMockEnvClient = isMockEnv;
+
+// Production fail-fast (Batch 1): never silently fall back to the local mock
+// backend in a production bundle. Without valid VITE_SUPABASE_URL / key, every
+// request would fail as an opaque fetch TypeError against localhost. Throwing
+// here — before any client is constructed — surfaces the misconfiguration
+// immediately instead. (No secret values are printed, only variable names.)
+if (import.meta.env.PROD && (isMockEnv || isLoopbackUrl)) {
+  throw new Error(
+    '[supabase] Missing or invalid production configuration: set a valid ' +
+    'VITE_SUPABASE_URL (https, non-local) and VITE_SUPABASE_PUBLISHABLE_KEY ' +
+    '(Vercel → Project Settings → Environment Variables) and redeploy. ' +
+    'Refusing to fall back to the local mock backend in production.',
+  );
+}
+
 const realSupabase = !isMockEnv ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 function parseJsonFields(obj: any): any {
