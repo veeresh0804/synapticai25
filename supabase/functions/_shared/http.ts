@@ -110,6 +110,9 @@ export function handleFunctionError(
     if (status === 402) {
       return errorResponse({ fn, code: "payment_required", message: "AI credits exhausted.", requestId, cause: e });
     }
+    if (status === 400) {
+      return errorResponse({ fn, code: "bad_request", message: "The file could not be processed. Please upload a text-based PDF resume.", requestId, cause: e });
+    }
     if (status >= 500) {
       return errorResponse({ fn, code: "upstream_error", message: "AI service is busy. Please try again in a moment.", requestId, cause: e });
     }
