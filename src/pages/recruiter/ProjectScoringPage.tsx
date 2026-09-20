@@ -48,7 +48,7 @@ const ProjectScoringPage: React.FC = () => {
   const [isScoring, setIsScoring] = useState(false);
 
   useEffect(() => {
-    if (!recruiterProfile?.id) return;
+    if (!recruiterProfile?.id) { setIsLoading(false); return; }
     const fetch = async () => {
       const { data: studs } = await supabase.from('students').select('id, name, institution');
       const { data: profiles } = await supabase.from('student_profiles').select('student_id, github_data');

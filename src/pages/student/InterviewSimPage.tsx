@@ -11,11 +11,12 @@ import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
 import { describeEdgeError, parseEdgeError } from '@/lib/edgeError';
 import { logger } from '@/lib/logger';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isMockEnvClient } from '@/integrations/supabase/client';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
-const STREAM_URL = `${import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-sim`;
+const BASE_URL = import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8081';
+const STREAM_URL = isMockEnvClient ? `${BASE_URL}/api/interview-sim` : `${BASE_URL}/functions/v1/interview-sim`;
 
 const InterviewSimPage: React.FC = () => {
   const { studentProfile } = useAuth();

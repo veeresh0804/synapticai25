@@ -37,15 +37,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = claims.get("role", String.class);
                 String id = claims.get("id", String.class);
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        email, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                if (!StringUtils.hasText(email) || !StringUtils.hasText(role) || !StringUtils.hasText(id)) {
+                    logger.warn("JWT missing required claims; skipping authentication");
+                } else {
+                    UUID userId;
+                    try {
+                        userId = UUID.fromString(id);
+                    } catch (IllegalArgumentException ex) {
+                        logger.warn("JWT contains invalid user id; skipping authentication");
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            email, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())));
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                request.setAttribute("userId", UUID.fromString(id));
-                request.setAttribute("userRole", role);
-                request.setAttribute("userEmail", email);
+                    request.setAttribute("userId", userId);
+                    request.setAttribute("userRole", role);
+                    request.setAttribute("userEmail", email);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         } catch (Exception ex) {
             logger.error("Could not set user authentication in security context", ex);

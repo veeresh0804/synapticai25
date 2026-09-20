@@ -10,7 +10,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin: React.FC = () => {
-  const { signIn } = useAuth();
+  const { signIn, logout } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -38,7 +38,8 @@ const AdminLogin: React.FC = () => {
         navigate('/admin/dashboard');
       } else {
         toast({ title: 'Access denied', description: 'You do not have admin privileges.', variant: 'destructive' });
-        await supabase.auth.signOut();
+        await logout();
+        navigate('/');
       }
     }
     setIsLoading(false);

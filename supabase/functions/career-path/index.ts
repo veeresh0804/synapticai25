@@ -1,4 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -7,10 +8,13 @@ export default {
     const requestId = newRequestId();
 
     try {
+    if (isOptions(req)) return optionsResponse();
       const userId = ctx.userClaims?.sub || ctx.userClaims?.id;
       const adminClient = ctx.supabaseAdmin;
 
-    const { target_role } = await req.json();
+    const _body = await safeReqJson(req, "career-path", requestId);
+    if (!_body.ok) return _body.response;
+    const { target_role } = _body.value as any;
     if (!target_role) throw new Error("target_role is required");
 
     const { data: student } = await adminClient.from("students").select("*").eq("user_id", userId).maybeSingle();
@@ -31,7 +35,7 @@ export default {
     };
 
     const aiResponse = await callAI({
-      model: "google/gemini-2.0-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         { role: "system", content: "You are an expert career advisor and tech mentor. Create personalized, actionable career roadmaps." },
         {
@@ -94,7 +98,7 @@ Create a personalized 6-month roadmap with specific monthly goals, resources, an
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) throw new Error("AI did not return structured output");
 
-    const result = JSON.parse(toolCall.function.arguments);
+    const result = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (e) {
       return internalError("career-path", e, "Failed to generate career path", requestId);

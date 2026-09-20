@@ -34,10 +34,17 @@ spring:
 
 app:
   jwt:
-    # 256-bit key for HMAC-SHA256 signing (minimum 32 bytes)
-    secret: "sudheeai_secure_token_secret_key_2026_java_spring_boot_jwt_signing_key_must_be_long_enough"
+    # MUST be provided via JWT_SECRET env var (min 32 bytes for HMAC-SHA256).
+    # No default committed to git to prevent cross-env token forgery.
+    secret: ${JWT_SECRET:}
     expiration-ms: 86400000 # 24 hours
   ai:
     gemini-key: ${AI_PROVIDER_API_KEY:}
   seed:
-    secret: ${SEED_SECRET:sb_seed_9f4b1aa86dad4705b8a1a2f7ea38e96a}
+    # MUST be provided via SEED_SECRET env var. Empty = seeding disabled.
+    secret: ${SEED_SECRET:}
+  google:
+    # Google OAuth Client ID for verifying GIS ID tokens.
+    # Get from https://console.cloud.google.com/apis/credentials
+    # Frontend needs the same value as VITE_GOOGLE_CLIENT_ID.
+    client-id: ${GOOGLE_CLIENT_ID:}

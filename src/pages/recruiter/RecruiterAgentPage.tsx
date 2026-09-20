@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, isMockEnvClient } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
 import { describeEdgeError, parseEdgeError } from '@/lib/edgeError';
@@ -13,7 +13,8 @@ import { logger } from '@/lib/logger';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
-const STREAM_URL = `${import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL}/functions/v1/recruiter-agent`;
+const BASE_URL = import.meta.env.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || 'http://localhost:8081';
+const STREAM_URL = isMockEnvClient ? `${BASE_URL}/api/recruiter-agent` : `${BASE_URL}/functions/v1/recruiter-agent`;
 
 const quickPrompts = [
   { icon: <Briefcase className="w-4 h-4" />, label: 'Draft JD', prompt: 'Help me draft a job description for a Senior Full Stack Developer with React and Node.js experience' },
@@ -39,7 +40,10 @@ const RecruiterAgentPage: React.FC = () => {
     if (!recruiterProfile?.id) return;
     const loadContext = async () => {
       const { data: jobs } = await supabase.from('jobs').select('id, title, status, applications_count').eq('recruiter_id', recruiterProfile.id);
-      const { data: apps } = await supabase.from('applications').select('id, status, job_id').in('job_id', (jobs || []).map(j => j.id));
+      const jobIds = (jobs || []).map((j: any) => j.id);
+      const { data: apps } = jobIds.length
+        ? await supabase.from('applications').select('id, status, job_id').in('job_id', jobIds)
+        : { data: [] } as any;
       setRecruiterContext({
         company: recruiterProfile.company_name,
         name: recruiterProfile.recruiter_name,

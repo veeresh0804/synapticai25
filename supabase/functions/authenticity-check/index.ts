@@ -1,6 +1,7 @@
 
 
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -9,9 +10,15 @@ export default {
     const requestId = newRequestId();
 
     try {
+    if (isOptions(req)) return optionsResponse();
 
-    const { student_profile } = await req.json();
+    const _body = await safeReqJson(req, "authenticity-check", requestId);
+    if (!_body.ok) return _body.response;
+    const { student_profile } = _body.value as any;
     if (!student_profile) throw new Error("student_profile required");
+    if (JSON.stringify(student_profile).length > 50000) {
+      return errorResponse({ fn: "authenticity-check", code: "bad_request", message: "student_profile too large (max ~50KB).", requestId });
+    }
 
     const prompt = `You are a resume authenticity detector. Analyze the following student profile data for signs of inflated or fake credentials.
 
@@ -38,7 +45,7 @@ Return a JSON object with this EXACT structure:
 Return ONLY valid JSON, no markdown.`;
 
     const response = await callAI({
-      model: "google/gemini-2.0-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -51,8 +58,8 @@ Return ONLY valid JSON, no markdown.`;
 
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "";
-    const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const result = JSON.parse(cleaned);
+    let result: any;
+    try { result = parseAiJson(content); } catch (pe) { return errorResponse({ fn: "authenticity-check", code: "upstream_error", message: "AI returned invalid JSON. Please retry.", requestId, cause: pe }); }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

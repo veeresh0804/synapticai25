@@ -27,11 +27,11 @@ const NotificationBell: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userType } = useAuth();
 
   useEffect(() => {
+    if (!user) return;
     const fetchNotifications = async () => {
-      if (!user) return;
       const { data } = await supabase
         .from('notifications')
         .select('*')
@@ -43,7 +43,7 @@ const NotificationBell: React.FC = () => {
 
     fetchNotifications();
 
-    // Realtime subscription
+    // Realtime subscription (mock client returns no-op channel)
     const channel = supabase
       .channel('notifications-realtime')
       .on(
@@ -58,7 +58,7 @@ const NotificationBell: React.FC = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -66,23 +66,26 @@ const NotificationBell: React.FC = () => {
     const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
     if (unreadIds.length === 0) return;
 
-    await supabase
+    const prev = notifications;
+    setNotifications((p) => p.map((n) => ({ ...n, is_read: true })));
+    const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .in('id', unreadIds);
-
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    if (error) setNotifications(prev);
   };
 
   const handleClick = async (notification: Notification) => {
     if (!notification.is_read) {
-      await supabase
+      const prev = notifications;
+      setNotifications((p) =>
+        p.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n))
+      );
+      const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
         .eq('id', notification.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n))
-      );
+      if (error) setNotifications(prev);
     }
     if (notification.link) {
       setOpen(false);
@@ -155,11 +158,13 @@ const NotificationBell: React.FC = () => {
             ))
           )}
         </ScrollArea>
+        {userType === 'student' && (
         <div className="border-t border-border px-4 py-2">
           <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground" onClick={() => { setOpen(false); navigate('/notifications'); }}>
             View all notifications
           </Button>
         </div>
+        )}
       </PopoverContent>
     </Popover>
   );

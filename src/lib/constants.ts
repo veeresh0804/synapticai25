@@ -9,6 +9,8 @@ export const APPLICATION_STATUS = {
   REJECTED: 'rejected',
   INTERVIEW: 'interview',
   INTERVIEW_SCHEDULED: 'interview_scheduled',
+  OFFERED: 'offered',
+  HIRED: 'hired',
 } as const;
 
 export const JOB_STATUS = {

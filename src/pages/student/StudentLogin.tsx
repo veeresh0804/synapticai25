@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 import Seo from '@/components/Seo';
 
 const StudentLogin: React.FC = () => {
@@ -35,19 +36,26 @@ const StudentLogin: React.FC = () => {
     }
   };
 
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
   useEffect(() => {
     if (!authLoading) {
       if (isAuthenticated) {
         if (userType === 'student') {
           navigate('/student/dashboard');
         } else if (userType === 'recruiter') {
-          toast({ title: 'Wrong portal', description: 'Please use the Recruiter login.', variant: 'destructive' });
-          logout();
+          toast({ title: 'Wrong portal', description: 'You are signed in as a recruiter. Redirecting to the Recruiter portal.', variant: 'destructive' });
           setIsLoading(false);
+          navigate('/recruiter/dashboard');
+        } else if (userType === 'admin') {
+          setIsLoading(false);
+          navigate('/admin/dashboard');
         }
       } else if (user) {
         toast({ title: 'Profile not found', description: 'Please ensure registration was completed successfully and your email is confirmed.', variant: 'destructive' });
         logout();
+        setIsLoading(false);
+      } else {
         setIsLoading(false);
       }
     }
@@ -72,6 +80,9 @@ const StudentLogin: React.FC = () => {
 
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
+              {googleClientId ? (
+                <GoogleSignInButton portal="student" />
+              ) : (
               <Button
                 type="button"
                 variant="outline"
@@ -97,8 +108,9 @@ const StudentLogin: React.FC = () => {
                     fill="#EA4335"
                   />
                 </svg>
-                Continue with Google
+                Continue with Google (Supabase Cloud)
               </Button>
+              )}
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

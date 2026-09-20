@@ -38,6 +38,9 @@ const Navbar: React.FC = () => {
         { path: '/student/profile', label: 'Profile' },
       ];
     }
+    if (userType === 'admin') {
+      return [{ path: '/admin/dashboard', label: 'Dashboard' }];
+    }
     return [];
   };
 
@@ -52,14 +55,22 @@ const Navbar: React.FC = () => {
   const getUserName = () => {
     if (userType === 'recruiter') return recruiterProfile?.recruiter_name || 'Recruiter';
     if (userType === 'student') return studentProfile?.name || 'Student';
+    if (userType === 'admin') return 'Admin';
     return '';
+  };
+
+  const getHomePath = () => {
+    if (!isAuthenticated) return '/';
+    if (userType === 'recruiter') return '/recruiter/dashboard';
+    if (userType === 'admin') return '/admin/dashboard';
+    return '/student/dashboard';
   };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to={isAuthenticated ? (userType === 'recruiter' ? '/recruiter/dashboard' : '/student/dashboard') : '/'} className="flex items-center gap-2 group">
+          <Link to={getHomePath()} className="flex items-center gap-2 group">
             <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-primary/70 group-hover:shadow-lg group-hover:shadow-primary/25 transition-all duration-300">
               <BrainCircuit className="w-5 h-5 text-primary-foreground" />
             </div>

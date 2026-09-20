@@ -38,6 +38,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: string | null; message?: string }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: (portal: 'student' | 'recruiter') => Promise<{ error: string | null }>;
+  signInWithGoogleIdToken: (idToken: string, portal: 'student' | 'recruiter') => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -157,9 +158,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           prompt: 'consent',
         },
       },
-    });
+    } as any);
     return { error: error?.message || null };
   }, []);
+
+  const signInWithGoogleIdToken = useCallback(async (idToken: string, portal: 'student' | 'recruiter') => {
+    const client = supabase as any;
+    if (typeof client.auth?.signInWithGoogleIdToken !== 'function') {
+      return { error: 'Google sign-in is not available in Supabase Cloud mode. Use Continue with Google (OAuth).' };
+    }
+    const { error } = await client.auth.signInWithGoogleIdToken(idToken, portal);
+    if (!error) {
+      await loadSession();
+    }
+    return { error: error?.message || null };
+  }, [loadSession]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
@@ -180,6 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signUp,
       signIn,
       signInWithGoogle,
+      signInWithGoogleIdToken,
       logout,
       refreshProfile,
     }}>

@@ -342,13 +342,20 @@ public class AIController {
         aiBody.put("tool_choice", "rank_candidates");
 
         return callAIWithTool(aiBody, "rank_candidates").map(ranking -> {
-            List<Map<String, Object>> rankedCandidates = (List<Map<String, Object>>) ranking.get("ranked_candidates");
+            if (ranking.containsKey("error")) {
+                return ResponseEntity.status(502).body(ranking);
+            }
+            Object rcObj = ranking.get("ranked_candidates");
+            if (!(rcObj instanceof List)) {
+                return ResponseEntity.status(502).body(Map.of("error", "AI returned invalid ranking shape"));
+            }
+            List<Map<String, Object>> rankedCandidates = (List<Map<String, Object>>) rcObj;
             List<Map<String, Object>> enriched = new ArrayList<>();
 
             for (Map<String, Object> rc : rankedCandidates) {
-                UUID studentId = UUID.fromString((String) rc.get("student_id"));
-                Student student = studentMap.get(studentId);
-                StudentProfile profile = profileMap.get(studentId);
+                UUID studentId = safeUuid(rc.get("student_id"));
+                Student student = studentId != null ? studentMap.get(studentId) : null;
+                StudentProfile profile = studentId != null ? profileMap.get(studentId) : null;
                 
                 Map<String, Object> candidateMap = new HashMap<>(rc);
                 candidateMap.put("email", student != null ? student.getEmail() : "");
@@ -367,17 +374,19 @@ public class AIController {
                 enriched.add(candidateMap);
 
                 // Update application match analysis in database
-                UUID appId = UUID.fromString((String) rc.get("application_id"));
-                Optional<Application> appOpt = applicationRepository.findById(appId);
-                appOpt.ifPresent(app -> {
-                    try {
-                        app.setMatchAnalysis(mapper.writeValueAsString(candidateMap));
-                        applicationRepository.save(app);
-                    } catch (Exception ignored) {}
-                });
+                UUID appId = safeUuid(rc.get("application_id"));
+                if (appId != null) {
+                    Optional<Application> appOpt = applicationRepository.findById(appId);
+                    appOpt.ifPresent(app -> {
+                        try {
+                            app.setMatchAnalysis(mapper.writeValueAsString(candidateMap));
+                            applicationRepository.save(app);
+                        } catch (Exception ignored) {}
+                    });
+                }
             }
 
-            return ResponseEntity.ok(Map.of("candidates", enriched, "summary", ranking.get("summary")));
+            return ResponseEntity.ok(Map.of("candidates", enriched, "summary", ranking.getOrDefault("summary", "")));
         });
     }
 
@@ -741,18 +750,34 @@ public class AIController {
     }
 
     @PostMapping({"/api/portfolio-build", "/functions/v1/portfolio-build"})
-    public ResponseEntity<?> portfolioBuild(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> portfolioBuild(
+            @RequestBody Map<String, Object> body,
+            @RequestAttribute(value = "userId", required = false) UUID callerUserId,
+            @RequestAttribute(value = "userRole", required = false) String callerRole) {
+        if (callerUserId == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         String studentIdStr = (String) body.get("studentId");
-        Optional<Student> studentOpt = studentRepository.findById(UUID.fromString(studentIdStr));
+        if (studentIdStr == null) studentIdStr = (String) body.get("student_id");
+        UUID studentId = safeUuid(studentIdStr);
+        if (studentId == null) return ResponseEntity.badRequest().body(Map.of("error", "Valid studentId required"));
+        // Ownership: students own portfolio only; recruiters admin allowed
+        if (!"admin".equalsIgnoreCase(callerRole)) {
+            boolean owns = studentRepository.findById(studentId)
+                    .map(s -> callerUserId.equals(s.getUserId())).orElse(false);
+            if (!owns) {
+                boolean isRecruiter = recruiterRepository.findByUserId(callerUserId).isPresent();
+                if (!isRecruiter) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+            }
+        }
+        Optional<Student> studentOpt = studentRepository.findById(studentId);
         if (studentOpt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Student not found"));
         Student s = studentOpt.get();
         Optional<StudentProfile> pOpt = studentProfileRepository.findByStudentId(s.getId());
 
-        String html = "<html><head><title>" + s.getName() + " Portfolio</title></head><body>"
-                + "<h1>" + s.getName() + "</h1>"
-                + "<p>Institution: " + s.getInstitution() + "</p>"
-                + "<p>Degree: " + s.getDegree() + " (" + s.getBranch() + ")</p>"
-                + "<p>Resume Details: " + (pOpt.isPresent() ? pOpt.get().getResumeSkills() : "None") + "</p>"
+        String html = "<html><head><title>" + esc(s.getName()) + " Portfolio</title></head><body>"
+                + "<h1>" + esc(s.getName()) + "</h1>"
+                + "<p>Institution: " + esc(s.getInstitution()) + "</p>"
+                + "<p>Degree: " + esc(s.getDegree()) + " (" + esc(s.getBranch()) + ")</p>"
+                + "<p>Resume Details: " + esc(pOpt.isPresent() ? pOpt.get().getResumeSkills() : "None") + "</p>"
                 + "</body></html>";
         return ResponseEntity.ok(Map.of("html", html));
     }
@@ -849,11 +874,29 @@ public class AIController {
 
     @PostMapping("/api/seed-users")
     public ResponseEntity<?> seedUsers(@RequestHeader(value = "x-seed-secret", required = false) String providedHeader) {
-        if (seedSecret == null || providedHeader == null || !seedSecret.equals(providedHeader)) {
+        if (seedSecret == null || seedSecret.isBlank()) {
+            return ResponseEntity.status(403).body(Map.of("error", "Seeding disabled"));
+        }
+        if (providedHeader == null
+                || providedHeader.length() != seedSecret.length()
+                || !java.security.MessageDigest.isEqual(
+                        providedHeader.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        seedSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
         Map<String, Object> result = dataSeeder.seed("Demo@1234");
         return ResponseEntity.ok(result);
+    }
+
+    private UUID safeUuid(Object v) {
+        if (v == null) return null;
+        try { return UUID.fromString(String.valueOf(v).trim()); } catch (Exception e) { return null; }
+    }
+
+    private String esc(Object v) {
+        if (v == null) return "";
+        return String.valueOf(v).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#x27;");
     }
 }
 class ModelBuilderHelper {

@@ -1,6 +1,7 @@
 
 
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -9,12 +10,15 @@ export default {
     const requestId = newRequestId();
 
     try {
+    if (isOptions(req)) return optionsResponse();
 
-    const { title, job_type, location, experience, brief_description } = await req.json();
+    const _body = await safeReqJson(req, "generate-jd", requestId);
+    if (!_body.ok) return _body.response;
+    const { title, job_type, location, experience, brief_description } = _body.value as any;
     if (!brief_description) throw new Error("brief_description is required");
 
     const aiResponse = await callAI({
-      model: "google/gemini-2.0-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         { role: "system", content: "You are an expert HR professional and technical recruiter. Generate professional, detailed job descriptions." },
         {
@@ -64,7 +68,7 @@ Create a comprehensive, professional job description.`,
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) throw new Error("AI did not return structured output");
 
-    const result = JSON.parse(toolCall.function.arguments);
+    const result = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     } catch (e) {
       return internalError("generate-jd", e, "Failed to generate job description", requestId);

@@ -32,6 +32,12 @@ const ResetPasswordPage: React.FC = () => {
       setIsRecovery(true);
     }
 
+    // Local mock mode: Forgot page sets sb_recovery flag since there is no SMTP.
+    // Allow the form to open so demo users aren't stuck on "Invalid Link".
+    try {
+      if (localStorage.getItem('sb_recovery')) setIsRecovery(true);
+    } catch { /* ignore */ }
+
     return () => subscription.unsubscribe();
   }, []);
 

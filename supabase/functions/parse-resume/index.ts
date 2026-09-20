@@ -1,4 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -7,6 +8,7 @@ export default {
     const requestId = newRequestId();
 
     try {
+    if (isOptions(req)) return optionsResponse();
       const userId = ctx.userClaims?.sub || ctx.userClaims?.id;
       const adminClient = ctx.supabaseAdmin;
 
@@ -37,7 +39,7 @@ export default {
 
     // Send to AI for skill extraction using multimodal (PDF as inline_data)
     const aiResponse = await callAI({
-      model: "google/gemini-2.0-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         {
           role: "system",
@@ -158,7 +160,7 @@ export default {
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let resumeSkills;
     if (toolCall?.function?.arguments) {
-      resumeSkills = JSON.parse(toolCall.function.arguments);
+      resumeSkills = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
     } else {
       throw new Error("AI did not return structured resume analysis");
     }

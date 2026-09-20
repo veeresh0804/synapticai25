@@ -2,8 +2,9 @@ export async function callAI(body: Record<string, any>) {
   const apiKey = Deno.env.get("AI_PROVIDER_API_KEY");
   if (!apiKey) throw new Error("AI_PROVIDER_API_KEY is not configured");
 
-  // Determine the model
-  let model = body.model;
+  // Determine the model: AI_MODEL env overrides the per-function default,
+  // so a future model retirement only needs a secret change, not a redeploy.
+  let model = Deno.env.get("AI_MODEL") || body.model;
   if (typeof model === "string" && model.startsWith("google/")) {
     model = model.substring("google/".length);
   }

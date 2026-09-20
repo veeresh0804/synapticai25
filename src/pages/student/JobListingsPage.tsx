@@ -48,13 +48,14 @@ const JobListingsPage: React.FC = () => {
   const filterOptions = useMemo(() => {
     const locations = [...new Set(jobs.map(j => j.location))].sort();
     const jobTypes = [...new Set(jobs.map(j => j.job_type))].sort();
-    const skills = [...new Set(jobs.flatMap(j => j.required_skills))].sort();
+    const skills = [...new Set(jobs.flatMap(j => j.required_skills ?? []))].sort();
     return { locations, jobTypes, skills };
   }, [jobs]);
 
   // Apply filters
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
+      const skills = job.required_skills ?? [];
       // Search query — match title, company, location, or skills
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -62,13 +63,13 @@ const JobListingsPage: React.FC = () => {
           job.title.toLowerCase().includes(q) ||
           job.location.toLowerCase().includes(q) ||
           job.recruiters?.company_name?.toLowerCase().includes(q) ||
-          job.required_skills.some(s => s.toLowerCase().includes(q));
+          skills.some(s => s.toLowerCase().includes(q));
         if (!matchesSearch) return false;
       }
 
       if (locationFilter !== 'all' && job.location !== locationFilter) return false;
       if (jobTypeFilter !== 'all' && job.job_type !== jobTypeFilter) return false;
-      if (skillFilter !== 'all' && !job.required_skills.includes(skillFilter)) return false;
+      if (skillFilter !== 'all' && !skills.includes(skillFilter)) return false;
 
       if (salaryFilter !== 'all' && job.salary_range) {
         const numbers = job.salary_range.match(/\d+/g)?.map(Number) || [];

@@ -1,4 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
 import { callAI } from "../_shared/ai.ts";
 import { withSupabase } from "npm:@supabase/server";
 
@@ -7,10 +8,13 @@ export default {
     const requestId = newRequestId();
 
     try {
+    if (isOptions(req)) return optionsResponse();
       const userId = ctx.userClaims?.sub || ctx.userClaims?.id;
       const adminClient = ctx.supabaseAdmin;
 
-    const { job_id } = await req.json();
+    const _body = await safeReqJson(req, "rank-candidates", requestId);
+    if (!_body.ok) return _body.response;
+    const { job_id } = _body.value as any;
     if (!job_id) throw new Error("job_id is required");
 
     // Resolve recruiter from authenticated user
@@ -108,7 +112,7 @@ IMPORTANT RANKING CRITERIA:
 Candidates with resume_skills data that closely match the job's required_skills should rank significantly higher. Weight resume-extracted skills at ~40%, GitHub/LeetCode data at ~30%, AI profile analysis at ~20%, and education at ~10%.`;
 
     const aiResponse = await callAI({
-      model: "google/gemini-2.0-flash", // TODO: verify model name against Google AI Studio's current model list
+      model: "google/gemini-3.6-flash", // TODO: verify model name against Google AI Studio's current model list
       messages: [
         { role: "system", content: "You are an expert AI recruiter that ranks candidates objectively and provides actionable insights." },
         { role: "user", content: prompt },
@@ -168,7 +172,7 @@ Candidates with resume_skills data that closely match the job's required_skills 
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let ranking;
     if (toolCall?.function?.arguments) {
-      ranking = JSON.parse(toolCall.function.arguments);
+      ranking = (() => { try { return parseAiJson(toolCall.function.arguments); } catch (pe) { throw new Error("AI returned invalid structured output. Please retry."); } })();
     } else {
       throw new Error("AI did not return structured ranking");
     }

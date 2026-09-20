@@ -28,12 +28,13 @@ const NotificationsPage: React.FC = () => {
   const { user } = useAuth();
 
   useEffect(() => {
+    if (!user?.id) return;
     const fetch = async () => {
       setLoading(true);
       let query = supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user?.id ?? '')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (filter !== 'all') {
@@ -45,7 +46,7 @@ const NotificationsPage: React.FC = () => {
       setLoading(false);
     };
     fetch();
-  }, [filter]);
+  }, [filter, user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

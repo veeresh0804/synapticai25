@@ -17,7 +17,10 @@ const statusConfig: Record<string, { label: string; class: string; icon: React.E
   under_review: { label: 'Under Review', class: 'badge-primary', icon: FileSearch },
   shortlisted: { label: 'Shortlisted', class: 'badge-success', icon: CheckCircle2 },
   rejected: { label: 'Rejected', class: 'badge-destructive', icon: XCircle },
+  interview: { label: 'Interview', class: 'badge-success', icon: Calendar },
   interview_scheduled: { label: 'Interview', class: 'badge-success', icon: Calendar },
+  offered: { label: 'Offered', class: 'badge-success', icon: CheckCircle2 },
+  hired: { label: 'Hired', class: 'badge-success', icon: CheckCircle2 },
 };
 
 const ApplicationsPage: React.FC = () => {

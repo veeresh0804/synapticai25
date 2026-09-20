@@ -91,14 +91,16 @@ const StudentProfilePage: React.FC = () => {
     }
     setIsUploading(true);
     const path = `${user.id}/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from('resumes').upload(path, file, { upsert: true });
+    const { data: uploadData, error: uploadError } = await supabase.storage.from('resumes').upload(path, file, { upsert: true });
     if (uploadError) {
       toast({ title: 'Upload failed', description: uploadError.message, variant: 'destructive' });
       setIsUploading(false);
       return;
     }
-    await supabase.from('students').update({ resume_url: path }).eq('id', studentProfile.id);
-    setResumeUrl(path);
+    // Use server-returned path when available so DB reference can't diverge
+    const storedPath = (uploadData as any)?.path ?? path;
+    await supabase.from('students').update({ resume_url: storedPath }).eq('id', studentProfile.id);
+    setResumeUrl(storedPath);
     toast({ title: 'Resume uploaded!' });
     setIsUploading(false);
   };

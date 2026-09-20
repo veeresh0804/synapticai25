@@ -7,6 +7,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || impor
 
 // Initialize real Supabase client if not in mock environment
 const isMockEnv = SUPABASE_URL === 'http://localhost:8081' || SUPABASE_ANON_KEY === 'mock-key';
+export const isMockEnvClient = isMockEnv;
 const realSupabase = !isMockEnv ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 function parseJsonFields(obj: any): any {
@@ -45,7 +46,8 @@ async function executeDbCall(table: string, action: string, payload: any) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    if (!res.ok) return { data: null, error: { message: data.error || 'Request failed' } };
+    if (!res.ok) return { data: null, error: { message: data.error || 'Request failed', code: (data as any).code, status: res.status } };
+    // Normalize single/maybeSingle empty results: backend returns null, PostgREST-like callers expect null data
     return { data: parseJsonFields(data), error: null };
   } catch {
     return { data: null, error: { message: text || 'Raw response error' } };
@@ -90,12 +92,83 @@ class CustomSupabaseClient {
       if (realSupabase) {
         return await realSupabase.auth.signInWithOAuth(options);
       }
-      // Mock flow redirect to simulate callback URL landing
-      const redirectToUrl = options?.options?.redirectTo;
-      if (redirectToUrl) {
-        window.location.href = redirectToUrl;
+      // Local mock backend has no OAuth provider. Fail fast with a clear
+      // message instead of redirecting to a callback that can never succeed
+      // (previously caused login -> callback -> login loop).
+      return { data: null, error: { message: 'Google sign-in requires Supabase Cloud. Use demo accounts in local mode (see demo_accounts.txt).' } };
+    },
+    signInWithGoogleIdToken: async (idToken: string, role?: string) => {
+      if (realSupabase) {
+        // Supabase Cloud mode uses OAuth redirect, not ID tokens.
+        return { data: null, error: { message: 'ID-token sign-in is for local database mode only.' } };
       }
+      const resolvedRole = role || (window.location.pathname.includes('recruiter') ? 'recruiter' : 'student');
+      if (!idToken) return { data: null, error: { message: 'Missing Google credential.' } };
+      try {
+        const res = await fetch(`${SUPABASE_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken, role: resolvedRole }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return { data: null, error: { message: (data as any).error || 'Google sign-in failed' } };
+        localStorage.setItem('sb_token', (data as any).token);
+        try { localStorage.removeItem('sb_recovery'); } catch { /* ignore */ }
+        return { data: { user: { id: (data as any).userId, email: '' } }, error: null };
+      } catch (e: any) {
+        return { data: null, error: { message: e?.message || 'Google sign-in failed' } };
+      }
+    },
+    resetPasswordForEmail: async (email: string, _options?: any) => {
+      if (realSupabase) {
+        return await (realSupabase.auth as any).resetPasswordForEmail(email, _options);
+      }
+      if (!email || !String(email).includes('@')) {
+        return { data: null, error: { message: 'Enter a valid email address.' } };
+      }
+      // Local DB has no SMTP; notify backend (no-op) and record intent so the
+      // Reset page can proceed. Real email sending needs Supabase Cloud.
+      try {
+        await fetch(`${SUPABASE_URL}/api/auth/forgot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+      } catch { /* ignore network failure, still allow demo flow */ }
+      try { localStorage.setItem('sb_recovery', JSON.stringify({ email, at: Date.now() })); } catch { /* ignore */ }
       return { data: {}, error: null };
+    },
+    updateUser: async (attrs: any) => {
+      if (realSupabase) {
+        return await (realSupabase.auth as any).updateUser(attrs);
+      }
+      const token = localStorage.getItem('sb_token');
+      const recovery = localStorage.getItem('sb_recovery');
+      if (!token && !recovery) {
+        return { data: null, error: { message: 'No active session. Request a reset link first (demo mode).' } };
+      }
+      const pw = attrs?.password;
+      if (!pw || String(pw).length < 8) {
+        return { data: null, error: { message: 'Password must be at least 8 characters.' } };
+      }
+      // Persist the new password when signed in (local DB endpoint).
+      if (token) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/api/auth/password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ newPassword: pw }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) return { data: null, error: { message: (data as any).error || 'Password update failed' } };
+          try { localStorage.removeItem('sb_recovery'); } catch { /* ignore */ }
+          return { data: { user: null }, error: null };
+        } catch (e: any) {
+          return { data: null, error: { message: e?.message || 'Password update failed' } };
+        }
+      }
+      try { localStorage.removeItem('sb_recovery'); } catch { /* ignore */ }
+      return { data: { user: null }, error: null };
     },
     getUser: async () => {
       if (realSupabase) {
@@ -241,7 +314,11 @@ class CustomSupabaseClient {
     if (realSupabase) {
       return realSupabase.from(table);
     }
-    const builder = {
+    // Single stateful builder: `then` reads from `this` so chained
+    // select/eq/limit/order/single/maybeSingle are all honored.
+    // Previously `{...builder, then: ...builder._x}` copied primitives by
+    // value and silently dropped everything except filters.
+    const builder: any = {
       _table: table,
       _select: '*',
       _filters: [] as any[],
@@ -315,32 +392,39 @@ class CustomSupabaseClient {
         return this;
       },
       insert(rows: any) {
-        return executeDbCall(this._table, 'insert', { rows });
+        // Chainable to match Supabase JS: .insert().select().single()
+        // Backend returns the created object; select/single are no-ops in mock.
+        const self = this;
+        const promise = executeDbCall(self._table, 'insert', { rows });
+        const chain: any = {
+          select(_cols = '*') { return chain; },
+          single() { return chain; },
+          maybeSingle() { return chain; },
+          then(onfulfilled: any, onrejected?: any) { return promise.then(onfulfilled, onrejected); },
+          catch(onrejected: any) { return promise.catch(onrejected); },
+        };
+        return chain;
       },
       update(values: any) {
         return executeDbCall(this._table, 'update', { values, filters: this._filters });
       },
       delete() {
         return executeDbCall(this._table, 'delete', { filters: this._filters });
-      }
-    };
-
-    const thenable = {
-      ...builder,
-      then: async (onfulfilled: any) => {
-        const res = await executeDbCall(builder._table, 'select', {
-          select: builder._select,
-          filters: builder._filters,
-          limit: builder._limit,
-          order: builder._order,
-          single: builder._single,
-          maybeSingle: builder._maybeSingle
+      },
+      then(onfulfilled: any, onrejected?: any) {
+        const res = executeDbCall(this._table, 'select', {
+          select: this._select,
+          filters: this._filters,
+          limit: this._limit,
+          order: this._order,
+          single: this._single,
+          maybeSingle: this._maybeSingle
         });
-        return onfulfilled(res);
+        return res.then(onfulfilled, onrejected);
       }
     };
 
-    return thenable;
+    return builder;
   }
 }
 

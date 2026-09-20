@@ -1,4 +1,5 @@
 import { corsHeaders, errorResponse, internalError, newRequestId } from "../_shared/errors.ts";
+import { isOptions, optionsResponse, safeReqJson, parseAiJson } from "../_shared/http.ts";
 import { withSupabase } from "npm:@supabase/server";
 
 export default {
@@ -6,6 +7,7 @@ export default {
     const requestId = newRequestId();
 
     try {
+    if (isOptions(req)) return optionsResponse();
       // Require a pre-shared seed secret. Without SEED_SECRET configured,
       // the function is permanently disabled.
       const seedSecret = Deno.env.get("SEED_SECRET");
